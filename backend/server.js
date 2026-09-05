@@ -5,6 +5,8 @@ const authRoutes = require("./routes/authRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const jobsRoutes = require("./routes/jobsRoutes");
 const savedJobsRoutes = require("./routes/savedJobsRoutes");
+const applicationsRoutes = require("./routes/applicationsRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
@@ -16,7 +18,9 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", profileRoutes);
 app.use("/api/jobs", jobsRoutes);
-app.use("/api", savedJobsRoutes);
+app.use("/api/saved-jobs", savedJobsRoutes);
+app.use("/api/applications", applicationsRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // API health check
 app.get("/api/health", (req, res) => {
