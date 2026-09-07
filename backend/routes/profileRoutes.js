@@ -1,19 +1,18 @@
 const express = require("express");
 
 const {
-    getJobs,
-    getJobById,
-    createJob
-} = require("../controllers/jobsController");
+    getProfile,
+    updateProfile
+} = require("../controllers/profileController");
 
 const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.get("/", getJobs);
+// Get logged-in user's profile
+router.get("/profile", protect, getProfile);
 
-router.get("/:id", getJobById);
-
-router.post("/", protect, createJob);
+// Update logged-in user's profile
+router.put("/profile", protect, updateProfile);
 
 module.exports = router;
