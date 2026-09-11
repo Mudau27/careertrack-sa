@@ -6,6 +6,7 @@ const saveJob = async (req, res) => {
         const userId = req.user.id;
         const { id: jobId } = req.params;
 
+        // Check if job exists
         const job = await pool.query(
             "SELECT id FROM jobs WHERE id = $1",
             [jobId]
@@ -18,21 +19,28 @@ const saveJob = async (req, res) => {
             });
         }
 
-        const result = await pool.query(
-            `INSERT INTO saved_jobs (user_id, job_id)
-             VALUES ($1, $2)
-             ON CONFLICT (user_id, job_id)
-             DO NOTHING
-             RETURNING *`,
+        // Check if user already saved this job
+        const existingSavedJob = await pool.query(
+            `SELECT id
+             FROM saved_jobs
+             WHERE user_id = $1 AND job_id = $2`,
             [userId, jobId]
         );
 
-        if (result.rows.length === 0) {
+        if (existingSavedJob.rows.length > 0) {
             return res.status(409).json({
                 status: "error",
                 message: "Job is already saved."
             });
         }
+
+        // Save job
+        const result = await pool.query(
+            `INSERT INTO saved_jobs (user_id, job_id)
+             VALUES ($1, $2)
+             RETURNING *`,
+            [userId, jobId]
+        );
 
         res.status(201).json({
             status: "success",
@@ -41,7 +49,7 @@ const saveJob = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Save job error:", error.message);
+        console.error("Save job error:", error);
 
         res.status(500).json({
             status: "error",
@@ -51,7 +59,7 @@ const saveJob = async (req, res) => {
 };
 
 
-// Remove a saved job
+// Remove saved job
 const removeSavedJob = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -59,7 +67,8 @@ const removeSavedJob = async (req, res) => {
 
         const result = await pool.query(
             `DELETE FROM saved_jobs
-             WHERE user_id = $1 AND job_id = $2
+             WHERE user_id = $1
+             AND job_id = $2
              RETURNING *`,
             [userId, jobId]
         );
@@ -77,7 +86,7 @@ const removeSavedJob = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Remove saved job error:", error.message);
+        console.error("Remove saved job error:", error);
 
         res.status(500).json({
             status: "error",
@@ -87,14 +96,15 @@ const removeSavedJob = async (req, res) => {
 };
 
 
-// Get logged-in user's saved jobs
+// Get saved jobs
 const getSavedJobs = async (req, res) => {
     try {
         const userId = req.user.id;
 
         const result = await pool.query(
             `SELECT
-                j.id,
+                s.id AS saved_id,
+                j.id AS job_id,
                 j.title,
                 j.company,
                 j.location,
@@ -105,9 +115,10 @@ const getSavedJobs = async (req, res) => {
                 j.employment_type,
                 j.job_url
              FROM saved_jobs s
-             INNER JOIN jobs j ON s.job_id = j.id
+             INNER JOIN jobs j
+             ON s.job_id = j.id
              WHERE s.user_id = $1
-             ORDER BY j.id DESC`,
+             ORDER BY s.saved_at DESC`,
             [userId]
         );
 
@@ -118,7 +129,7 @@ const getSavedJobs = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Get saved jobs error:", error.message);
+        console.error("Get saved jobs error:", error);
 
         res.status(500).json({
             status: "error",

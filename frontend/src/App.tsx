@@ -1,16 +1,60 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Jobs from "./pages/Jobs";
+import SavedJobs from "./pages/SavedJobs";
+import Applications from "./pages/Applications";
+import Profile from "./pages/Profile";
+import AppLayout from "./components/AppLayout";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        <Route path="/login" element={<Login />} />
+        {/* Login */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Main application */}
+        <Route element={<AppLayout />}>
 
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
+
+          <Route
+            path="/jobs"
+            element={<Jobs />}
+          />
+
+          <Route
+            path="/saved-jobs"
+            element={<SavedJobs />}
+          />
+
+          <Route
+            path="/applications"
+            element={<Applications />}
+          />
+
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+
+        </Route>
+
+        {/* Unknown URLs */}
         <Route
           path="*"
           element={<Navigate to="/login" replace />}
