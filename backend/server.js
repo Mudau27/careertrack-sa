@@ -10,13 +10,12 @@ const savedJobsRoutes = require("./routes/savedJobsRoutes");
 const applicationsRoutes = require("./routes/applicationsRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const externalJobsRoutes = require("./routes/externalJobsRoutes");
-const interviewsRoutes = require(
-    "./routes/interviewsRoutes"
-);
-const notificationsRoutes =
-    require(
-        "./routes/notificationsRoutes"
-    );
+const interviewsRoutes = require("./routes/interviewsRoutes");
+const notificationsRoutes = require("./routes/notificationsRoutes");
+
+const {
+    createInterviewReminders
+} = require("./services/interviewReminderService");
 
 
 const app = express();
@@ -24,117 +23,211 @@ const app = express();
 const PORT = 5000;
 
 
-// Middleware
+// ==========================================
+// MIDDLEWARE
+// ==========================================
+
 app.use(cors());
+
 app.use(express.json());
 
 
 // Make uploaded CV files accessible
+
 app.use(
     "/uploads",
     express.static("uploads")
 );
 
 
-// Authentication routes
+// ==========================================
+// ROUTES
+// ==========================================
+
+
+// Authentication
+
 app.use(
     "/api/auth",
     authRoutes
 );
 
 
-// Profile routes
+// Profile
+
 app.use(
     "/api/users",
     profileRoutes
 );
 
 
-// Jobs routes
+// Jobs
+
 app.use(
     "/api/jobs",
     jobsRoutes
 );
 
 
-// Saved jobs routes
+// Saved Jobs
+
 app.use(
     "/api",
     savedJobsRoutes
 );
 
 
-// Applications routes
+// Applications
+
 app.use(
     "/api/applications",
     applicationsRoutes
 );
+
+
+// Interviews
 
 app.use(
     "/api/interviews",
     interviewsRoutes
 );
 
+
+// Notifications
+
 app.use(
     "/api/notifications",
     notificationsRoutes
 );
 
-// Dashboard routes
+
+// Dashboard
+
 app.use(
     "/api/dashboard",
     dashboardRoutes
 );
 
 
-// External jobs routes
+// External Jobs
+
 app.use(
     "/api/external-jobs",
     externalJobsRoutes
 );
 
 
-// API health check
-app.get("/api/health", (req, res) => {
-    res.json({
-        status: "success",
-        message: "CareerTrack SA backend is running!"
-    });
-});
+// ==========================================
+// HEALTH CHECK
+// ==========================================
 
-
-// Database test
-app.get("/api/db-test", async (req, res) => {
-    try {
-        const result = await pool.query(
-            "SELECT NOW()"
-        );
+app.get(
+    "/api/health",
+    (req, res) => {
 
         res.json({
             status: "success",
             message:
-                "PostgreSQL connection successful!",
-            database_time:
-                result.rows[0].now
+                "CareerTrack SA backend is running!"
         });
 
-    } catch (error) {
-        console.error(
-            "Database connection error:",
-            error.message
+    }
+);
+
+
+// ==========================================
+// DATABASE TEST
+// ==========================================
+
+app.get(
+    "/api/db-test",
+    async (req, res) => {
+
+        try {
+
+            const result =
+                await pool.query(
+                    "SELECT NOW()"
+                );
+
+
+            res.json({
+
+                status:
+                    "success",
+
+                message:
+                    "PostgreSQL connection successful!",
+
+                database_time:
+                    result.rows[0].now
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "Database connection error:",
+                error.message
+            );
+
+
+            res.status(500).json({
+
+                status:
+                    "error",
+
+                message:
+                    "PostgreSQL connection failed."
+
+            });
+
+        }
+
+    }
+);
+
+
+// ==========================================
+// AUTOMATIC INTERVIEW REMINDERS
+// ==========================================
+
+
+// Check every 5 minutes
+
+const REMINDER_INTERVAL =
+    5 * 60 * 1000;
+
+
+// Run once when backend starts
+
+createInterviewReminders();
+
+
+// Then check every 5 minutes
+
+setInterval(
+    createInterviewReminders,
+    REMINDER_INTERVAL
+);
+
+
+// ==========================================
+// START SERVER
+// ==========================================
+
+app.listen(
+    PORT,
+    () => {
+
+        console.log(
+            `CareerTrack SA API running on http://localhost:${PORT}`
         );
 
-        res.status(500).json({
-            status: "error",
-            message:
-                "PostgreSQL connection failed."
-        });
+        console.log(
+            "Interview reminder service is running."
+        );
+
     }
-});
-
-
-app.listen(PORT, () => {
-    console.log(
-        `CareerTrack SA API running on http://localhost:${PORT}`
-    );
-});
+);
