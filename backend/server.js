@@ -13,6 +13,10 @@ const externalJobsRoutes = require("./routes/externalJobsRoutes");
 const interviewsRoutes = require(
     "./routes/interviewsRoutes"
 );
+const notificationsRoutes =
+    require(
+        "./routes/notificationsRoutes"
+    );
 
 
 const app = express();
@@ -69,6 +73,11 @@ app.use(
 app.use(
     "/api/interviews",
     interviewsRoutes
+);
+
+app.use(
+    "/api/notifications",
+    notificationsRoutes
 );
 
 // Dashboard routes
