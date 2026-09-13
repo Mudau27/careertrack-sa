@@ -1,7 +1,8 @@
 const express = require("express");
 
 const {
-    searchExternalJobs
+    searchExternalJobs,
+    saveExternalJob
 } = require(
     "../controllers/externalJobsController"
 );
@@ -16,6 +17,12 @@ router.get(
     "/search",
     protect,
     searchExternalJobs
+);
+
+router.post(
+    "/save",
+    protect,
+    saveExternalJob
 );
 
 module.exports = router;

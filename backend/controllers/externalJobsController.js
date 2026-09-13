@@ -13,24 +13,18 @@ const searchExternalJobs = async (req, res) => {
             page = 1
         } = req.query;
 
-        const appId =
-            process.env.ADZUNA_APP_ID;
-
-        const appKey =
-            process.env.ADZUNA_APP_KEY;
+        const appId = process.env.ADZUNA_APP_ID;
+        const appKey = process.env.ADZUNA_APP_KEY;
 
         if (!appId || !appKey) {
             return res.status(500).json({
                 status: "error",
-                message:
-                    "Adzuna API credentials are missing."
+                message: "Adzuna API credentials are missing."
             });
         }
 
-        const country = "za";
-
         const url =
-            `https://api.adzuna.com/v1/api/jobs/${country}/search/${page}` +
+            `https://api.adzuna.com/v1/api/jobs/za/search/${page}` +
             `?app_id=${encodeURIComponent(appId)}` +
             `&app_key=${encodeURIComponent(appKey)}` +
             `&results_per_page=20` +
@@ -41,74 +35,61 @@ const searchExternalJobs = async (req, res) => {
         const response = await fetch(url);
 
         if (!response.ok) {
-            const errorText =
-                await response.text();
+            const errorText = await response.text();
 
             console.error(
-                "Adzuna API error:",
+                "Adzuna error:",
                 response.status,
                 errorText
             );
 
-            return res
-                .status(response.status)
-                .json({
-                    status: "error",
-                    message:
-                        "Failed to retrieve jobs from Adzuna."
-                });
+            return res.status(response.status).json({
+                status: "error",
+                message: "Failed to retrieve jobs from Adzuna."
+            });
         }
 
-        const data =
-            await response.json();
+        const data = await response.json();
 
-        const jobs =
-            (data.results || []).map(
-                (job) => ({
-                    external_id: String(
-                        job.id
-                    ),
+        const jobs = (data.results || []).map((job) => ({
+            external_id: String(job.id),
 
-                    title:
-                        job.title ||
-                        "Untitled Job",
+            title:
+                job.title ||
+                "Untitled Job",
 
-                    company:
-                        job.company
-                            ?.display_name ||
-                        "Unknown company",
+            company:
+                job.company?.display_name ||
+                "Unknown company",
 
-                    location:
-                        job.location
-                            ?.display_name ||
-                        "South Africa",
+            location:
+                job.location?.display_name ||
+                "South Africa",
 
-                    description:
-                        job.description ||
-                        "",
+            description:
+                job.description ||
+                "",
 
-                    salary_min:
-                        job.salary_min ||
-                        null,
+            salary_min:
+                job.salary_min ||
+                null,
 
-                    salary_max:
-                        job.salary_max ||
-                        null,
+            salary_max:
+                job.salary_max ||
+                null,
 
-                    created:
-                        job.created ||
-                        null,
+            created:
+                job.created ||
+                null,
 
-                    redirect_url:
-                        job.redirect_url ||
-                        null,
+            redirect_url:
+                job.redirect_url ||
+                null,
 
-                    category:
-                        job.category
-                            ?.label ||
-                        null
-                })
-            );
+            category:
+                job.category?.label ||
+                null
+        }));
 
         res.json({
             status: "success",
@@ -126,8 +107,7 @@ const searchExternalJobs = async (req, res) => {
 
         res.status(500).json({
             status: "error",
-            message:
-                "Server error while retrieving external jobs."
+            message: error.message
         });
     }
 };
@@ -137,16 +117,11 @@ const searchExternalJobs = async (req, res) => {
 // SAVE EXTERNAL JOB
 // ======================================================
 
-const saveExternalJob = async (
-    req,
-    res
-) => {
-    const client =
-        await pool.connect();
+const saveExternalJob = async (req, res) => {
+    const client = await pool.connect();
 
     try {
-        const userId =
-            req.user.id;
+        const userId = req.user.id;
 
         const {
             external_id,
@@ -160,200 +135,160 @@ const saveExternalJob = async (
             category
         } = req.body;
 
-        if (
-            !external_id ||
-            !title ||
-            !company
-        ) {
-            return res
-                .status(400)
-                .json({
-                    status: "error",
-                    message:
-                        "Job information is incomplete."
-                });
+        console.log(
+            "Saving external job:",
+            external_id,
+            title
+        );
+
+        if (!external_id || !title || !company) {
+            return res.status(400).json({
+                status: "error",
+                message: "Job information is incomplete."
+            });
+        }
+
+        if (!redirect_url) {
+            return res.status(400).json({
+                status: "error",
+                message: "External job URL is missing."
+            });
         }
 
         await client.query("BEGIN");
 
 
-        // ----------------------------------------------
-        // Check whether this external job was already
-        // imported into our jobs table.
-        // ----------------------------------------------
-
-        const existingJob =
-            await client.query(
-                `SELECT id
-                 FROM jobs
-                 WHERE job_url = $1
-                 LIMIT 1`,
-                [redirect_url]
-            );
+        // Check whether external job already exists
+        const existingJob = await client.query(
+            `SELECT id
+             FROM jobs
+             WHERE job_url = $1
+             LIMIT 1`,
+            [redirect_url]
+        );
 
         let jobId;
 
 
-        // ----------------------------------------------
-        // Existing imported job
-        // ----------------------------------------------
+        // Use existing job
+        if (existingJob.rows.length > 0) {
 
-        if (
-            existingJob.rows.length > 0
-        ) {
-            jobId =
-                existingJob.rows[0].id;
-        }
+            jobId = existingJob.rows[0].id;
 
+        } else {
 
-        // ----------------------------------------------
-        // Import new external job
-        // ----------------------------------------------
-
-        else {
-            const insertedJob =
-                await client.query(
-                    `INSERT INTO jobs
-                        (
-                            title,
-                            company,
-                            location,
-                            description,
-                            requirements,
-                            salary_min,
-                            salary_max,
-                            employment_type,
-                            job_url
-                        )
-
-                     VALUES
-                        (
-                            $1,
-                            $2,
-                            $3,
-                            $4,
-                            $5,
-                            $6,
-                            $7,
-                            $8,
-                            $9
-                        )
-
-                     RETURNING *`,
-                    [
+            // Import external job into jobs table
+            const insertedJob = await client.query(
+                `INSERT INTO jobs
+                    (
                         title,
                         company,
-                        location || null,
-                        description || null,
-
-                        category
-                            ? `Category: ${category}`
-                            : "See job listing for requirements.",
-
-                        salary_min || null,
-                        salary_max || null,
-
-                        "External",
-
-                        redirect_url || null
-                    ]
-                );
-
-            jobId =
-                insertedJob.rows[0].id;
-        }
-
-
-        // ----------------------------------------------
-        // Check whether user already saved it
-        // ----------------------------------------------
-
-        const existingSavedJob =
-            await client.query(
-                `SELECT id
-                 FROM saved_jobs
-                 WHERE user_id = $1
-                 AND job_id = $2`,
-                [
-                    userId,
-                    jobId
-                ]
-            );
-
-
-        if (
-            existingSavedJob.rows.length >
-            0
-        ) {
-            await client.query(
-                "ROLLBACK"
-            );
-
-            return res
-                .status(409)
-                .json({
-                    status: "error",
-                    message:
-                        "Job is already saved."
-                });
-        }
-
-
-        // ----------------------------------------------
-        // Save job for user
-        // ----------------------------------------------
-
-        const savedJob =
-            await client.query(
-                `INSERT INTO saved_jobs
-                    (
-                        user_id,
-                        job_id
+                        location,
+                        description,
+                        requirements,
+                        salary_min,
+                        salary_max,
+                        employment_type,
+                        job_url
                     )
 
                  VALUES
-                    ($1, $2)
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 
-                 RETURNING *`,
+                 RETURNING id`,
                 [
-                    userId,
-                    jobId
+                    title,
+                    company,
+                    location || "South Africa",
+                    description || "No description provided.",
+
+                    category
+                        ? `Category: ${category}`
+                        : "See external job listing for requirements.",
+
+                    salary_min || null,
+                    salary_max || null,
+                    "External",
+                    redirect_url
                 ]
             );
 
+            jobId = insertedJob.rows[0].id;
+        }
 
-        await client.query(
-            "COMMIT"
+
+        // Check whether user already saved job
+        const existingSaved = await client.query(
+            `SELECT id
+             FROM saved_jobs
+             WHERE user_id = $1
+             AND job_id = $2`,
+            [
+                userId,
+                jobId
+            ]
         );
+
+
+        if (existingSaved.rows.length > 0) {
+
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                status: "error",
+                message: "Job is already saved."
+            });
+        }
+
+
+        // Save job
+        const savedJob = await client.query(
+            `INSERT INTO saved_jobs
+                (
+                    user_id,
+                    job_id
+                )
+
+             VALUES
+                ($1, $2)
+
+             RETURNING *`,
+            [
+                userId,
+                jobId
+            ]
+        );
+
+
+        await client.query("COMMIT");
 
 
         res.status(201).json({
             status: "success",
-
-            message:
-                "External job saved successfully.",
-
+            message: "External job saved successfully.",
             job_id: jobId,
-
-            savedJob:
-                savedJob.rows[0]
+            savedJob: savedJob.rows[0]
         });
 
     } catch (error) {
 
-        await client.query(
-            "ROLLBACK"
-        );
+        await client.query("ROLLBACK");
 
         console.error(
-            "Save external job error:",
+            "SAVE EXTERNAL JOB ERROR:",
             error
         );
 
         res.status(500).json({
             status: "error",
-            message:
-                "Server error while saving external job."
+
+            // Temporary debugging so we can see
+            // the actual PostgreSQL problem
+            message: error.message,
+
+            code:
+                error.code ||
+                null
         });
 
     } finally {

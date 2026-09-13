@@ -10,7 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import SavedJobs from "./pages/SavedJobs";
 import Applications from "./pages/Applications";
+import Interviews from "./pages/Interviews";
 import Profile from "./pages/Profile";
+
 import AppLayout from "./components/AppLayout";
 
 function App() {
@@ -48,6 +50,11 @@ function App() {
           />
 
           <Route
+            path="/interviews"
+            element={<Interviews />}
+          />
+
+          <Route
             path="/profile"
             element={<Profile />}
           />
@@ -57,7 +64,12 @@ function App() {
         {/* Unknown URLs */}
         <Route
           path="*"
-          element={<Navigate to="/login" replace />}
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
         />
 
       </Routes>

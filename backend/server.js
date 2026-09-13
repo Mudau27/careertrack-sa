@@ -6,18 +6,15 @@ const pool = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const jobsRoutes = require("./routes/jobsRoutes");
-const savedJobsRoutes = require(
-    "./routes/savedJobsRoutes"
+const savedJobsRoutes = require("./routes/savedJobsRoutes");
+const applicationsRoutes = require("./routes/applicationsRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const externalJobsRoutes = require("./routes/externalJobsRoutes");
+const interviewsRoutes = require(
+    "./routes/interviewsRoutes"
 );
-const applicationsRoutes = require(
-    "./routes/applicationsRoutes"
-);
-const dashboardRoutes = require(
-    "./routes/dashboardRoutes"
-);
-const externalJobsRoutes = require(
-    "./routes/externalJobsRoutes"
-);
+
+
 const app = express();
 
 const PORT = 5000;
@@ -25,7 +22,6 @@ const PORT = 5000;
 
 // Middleware
 app.use(cors());
-
 app.use(express.json());
 
 
@@ -70,6 +66,10 @@ app.use(
     applicationsRoutes
 );
 
+app.use(
+    "/api/interviews",
+    interviewsRoutes
+);
 
 // Dashboard routes
 app.use(
@@ -77,6 +77,8 @@ app.use(
     dashboardRoutes
 );
 
+
+// External jobs routes
 app.use(
     "/api/external-jobs",
     externalJobsRoutes
@@ -87,8 +89,7 @@ app.use(
 app.get("/api/health", (req, res) => {
     res.json({
         status: "success",
-        message:
-            "CareerTrack SA backend is running!"
+        message: "CareerTrack SA backend is running!"
     });
 });
 
