@@ -1,58 +1,85 @@
 // ==========================================
-// CV ANALYZER SERVICE
+// CAREERTRACK SA - ATS CV ANALYZER
 // ==========================================
 
-// Skills that CareerTrack SA can currently detect
 const SKILLS = [
+    // Frontend
     "javascript",
     "typescript",
     "react",
-    "node.js",
-    "node",
-    "express",
+    "angular",
+    "vue",
     "html",
     "css",
     "tailwind",
     "bootstrap",
 
-    "python",
-    "java",
-    "c#",
-    "c++",
+    // Backend
+    "node.js",
+    "node",
+    "express",
     "php",
+    "java",
+    "spring boot",
+    "c#",
+    ".net",
+    "python",
+    "django",
+    "flask",
 
+    // Databases
     "sql",
     "postgresql",
     "mysql",
     "mongodb",
+    "oracle",
+    "redis",
 
+    // APIs
     "rest api",
     "rest",
-    "api",
+    "graphql",
 
-    "git",
-    "github",
-
-    "docker",
-    "kubernetes",
-
+    // Cloud
     "azure",
     "aws",
     "google cloud",
 
+    // DevOps
+    "docker",
+    "kubernetes",
     "ci/cd",
     "devops",
+    "github actions",
     "linux",
 
+    // Version control
+    "git",
+    "github",
+    "gitlab",
+
+    // Data
+    "power bi",
+    "excel",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "tensorflow",
+    "machine learning",
+    "data analysis",
+    "data science",
+
+    // Cybersecurity
     "cybersecurity",
     "network security",
+    "wireshark",
+    "snort",
 
-    "machine learning",
-    "tensorflow",
-    "scikit-learn",
-
-    "power bi",
-    "excel"
+    // General development
+    "agile",
+    "scrum",
+    "testing",
+    "unit testing"
 ];
 
 
@@ -61,39 +88,10 @@ const SKILLS = [
 // ==========================================
 
 const normalizeText = (text = "") => {
-
     return text
         .toLowerCase()
         .replace(/\s+/g, " ")
         .trim();
-
-};
-
-
-// ==========================================
-// FIND SKILLS
-// ==========================================
-
-const findSkills = (text = "") => {
-
-    const normalizedText =
-        normalizeText(text);
-
-
-    const detectedSkills =
-        SKILLS.filter((skill) => {
-
-            return normalizedText.includes(
-                skill.toLowerCase()
-            );
-
-        });
-
-
-    return cleanSkills(
-        detectedSkills
-    );
-
 };
 
 
@@ -103,70 +101,116 @@ const findSkills = (text = "") => {
 
 const cleanSkills = (skills) => {
 
-    let cleaned =
-        [...new Set(skills)];
+    let cleaned = [...new Set(skills)];
 
-
-    // If Node.js exists,
-    // don't also display Node
-
-    if (
-        cleaned.includes("node.js")
-    ) {
-
-        cleaned =
-            cleaned.filter(
-                (skill) =>
-                    skill !== "node"
-            );
-
+    if (cleaned.includes("node.js")) {
+        cleaned = cleaned.filter(
+            (skill) => skill !== "node"
+        );
     }
 
-
-    // If REST API exists,
-    // don't separately display
-    // REST and API
-
-    if (
-        cleaned.includes("rest api")
-    ) {
-
-        cleaned =
-            cleaned.filter(
-                (skill) =>
-                    skill !== "rest" &&
-                    skill !== "api"
-            );
-
+    if (cleaned.includes("rest api")) {
+        cleaned = cleaned.filter(
+            (skill) => skill !== "rest"
+        );
     }
-
 
     return cleaned;
-
 };
 
 
 // ==========================================
-// ANALYZE CV
+// FIND SKILLS
 // ==========================================
 
-const analyzeCV = (
-    cvText,
-    jobDescription
+const findSkills = (text = "") => {
+
+    const normalizedText = normalizeText(text);
+
+    const detectedSkills = SKILLS.filter(
+        (skill) =>
+            normalizedText.includes(
+                skill.toLowerCase()
+            )
+    );
+
+    return cleanSkills(detectedSkills);
+};
+
+
+// ==========================================
+// CHECK CV SECTIONS
+// ==========================================
+
+const analyzeSections = (cvText) => {
+
+    const text = normalizeText(cvText);
+
+    return {
+        contactInformation:
+            text.includes("@") ||
+            text.includes("linkedin"),
+
+        professionalSummary:
+            text.includes("summary") ||
+            text.includes("profile") ||
+            text.includes("objective"),
+
+        experience:
+            text.includes("experience") ||
+            text.includes("employment") ||
+            text.includes("work history"),
+
+        education:
+            text.includes("education") ||
+            text.includes("university") ||
+            text.includes("degree"),
+
+        skills:
+            text.includes("skills") ||
+            text.includes("technical skills"),
+
+        projects:
+            text.includes("projects") ||
+            text.includes("project"),
+
+        certifications:
+            text.includes("certifications") ||
+            text.includes("certificates") ||
+            text.includes("certification")
+    };
+};
+
+
+// ==========================================
+// SECTION SCORE
+// ==========================================
+
+const calculateSectionScore = (sections) => {
+
+    const values = Object.values(sections);
+
+    const completed =
+        values.filter(Boolean).length;
+
+    return Math.round(
+        (completed / values.length) * 100
+    );
+};
+
+
+// ==========================================
+// JOB SKILL MATCH
+// ==========================================
+
+const calculateSkillMatch = (
+    cvSkills,
+    requiredSkills
 ) => {
 
-    const cvSkills =
-        findSkills(cvText);
-
-
-    const requiredSkills =
-        findSkills(
-            jobDescription
-        );
-
-
-    // Skills found in both CV
-    // and job description
+    if (requiredSkills.length === 0) {
+        return 0;
+    }
 
     const matchedSkills =
         requiredSkills.filter(
@@ -174,9 +218,146 @@ const analyzeCV = (
                 cvSkills.includes(skill)
         );
 
+    return Math.round(
+        (
+            matchedSkills.length /
+            requiredSkills.length
+        ) * 100
+    );
+};
 
-    // Skills required by job
-    // but missing from CV
+
+// ==========================================
+// CV QUALITY CHECKS
+// ==========================================
+
+const analyzeQuality = (cvText) => {
+
+    const text = normalizeText(cvText);
+
+    return {
+        hasGithub:
+            text.includes("github"),
+
+        hasLinkedIn:
+            text.includes("linkedin"),
+
+        hasPortfolio:
+            text.includes("portfolio"),
+
+        hasProjects:
+            text.includes("project"),
+
+        hasExperience:
+            text.includes("experience"),
+
+        hasEducation:
+            text.includes("education") ||
+            text.includes("university"),
+
+        hasMetrics:
+            /\b\d+%|\b\d+\+|\b\d{2,}\b/.test(
+                cvText
+            )
+    };
+};
+
+
+// ==========================================
+// GENERATE RECOMMENDATIONS
+// ==========================================
+
+const generateRecommendations = ({
+    missingSkills,
+    sections,
+    quality
+}) => {
+
+    const recommendations = [];
+
+    if (missingSkills.length > 0) {
+
+        recommendations.push(
+            `The job description mentions skills not detected in your CV: ${missingSkills.join(", ")}. Add them only if you genuinely have experience with them.`
+        );
+    }
+
+    if (!sections.professionalSummary) {
+        recommendations.push(
+            "Add a short professional summary tailored to the role."
+        );
+    }
+
+    if (!sections.projects) {
+        recommendations.push(
+            "Add a Projects section showing practical work and the technologies used."
+        );
+    }
+
+    if (!sections.certifications) {
+        recommendations.push(
+            "Consider adding a Certifications section if you have relevant certifications."
+        );
+    }
+
+    if (!quality.hasGithub) {
+        recommendations.push(
+            "Add your GitHub profile, especially for software development roles."
+        );
+    }
+
+    if (!quality.hasLinkedIn) {
+        recommendations.push(
+            "Add your LinkedIn profile."
+        );
+    }
+
+    if (!quality.hasPortfolio) {
+        recommendations.push(
+            "Consider adding a portfolio link to demonstrate your work."
+        );
+    }
+
+    if (!quality.hasMetrics) {
+        recommendations.push(
+            "Quantify achievements where possible, for example performance improvements, project results, users supported, or percentages."
+        );
+    }
+
+    if (recommendations.length === 0) {
+        recommendations.push(
+            "Your CV contains the major sections and technical keywords detected for this role. Review each achievement and tailor the wording to the job description."
+        );
+    }
+
+    return recommendations;
+};
+
+
+// ==========================================
+// MAIN ATS ANALYSIS
+// ==========================================
+
+const analyzeCV = (
+    cvText,
+    jobDescription
+) => {
+
+    // --------------------------------------
+    // Skills
+    // --------------------------------------
+
+    const cvSkills =
+        findSkills(cvText);
+
+    const requiredSkills =
+        findSkills(jobDescription);
+
+    const matchedSkills =
+        requiredSkills.filter(
+            (skill) =>
+                cvSkills.includes(skill)
+        );
 
     const missingSkills =
         requiredSkills.filter(
@@ -185,154 +366,116 @@ const analyzeCV = (
         );
 
 
-    // ======================================
-    // MATCH SCORE
-    // ======================================
+    // --------------------------------------
+    // Scores
+    // --------------------------------------
 
-    let matchScore = 0;
-
-
-    if (
-        requiredSkills.length > 0
-    ) {
-
-        matchScore =
-            Math.round(
-                (
-                    matchedSkills.length /
-                    requiredSkills.length
-                ) * 100
-            );
-
-    }
-
-
-    // ======================================
-    // RECOMMENDATIONS
-    // ======================================
-
-    const recommendations = [];
-
-
-    if (
-        missingSkills.length > 0
-    ) {
-
-        recommendations.push(
-            `Consider adding evidence of these relevant skills if you have them: ${missingSkills.join(", ")}.`
+    const skillMatchScore =
+        calculateSkillMatch(
+            cvSkills,
+            requiredSkills
         );
 
-    }
+
+    const sections =
+        analyzeSections(cvText);
 
 
-    const normalizedCV =
-        normalizeText(cvText);
-
-
-    if (
-        !normalizedCV.includes(
-            "github"
-        )
-    ) {
-
-        recommendations.push(
-            "Consider adding your GitHub profile to your CV."
+    const sectionScore =
+        calculateSectionScore(
+            sections
         );
 
-    }
+
+    const quality =
+        analyzeQuality(cvText);
 
 
-    if (
-        !normalizedCV.includes(
-            "project"
-        )
-    ) {
+    // --------------------------------------
+    // Quality score
+    // --------------------------------------
 
-        recommendations.push(
-            "Add a projects section showing practical work and technologies used."
+    const qualityValues =
+        Object.values(quality);
+
+    const qualityScore =
+        Math.round(
+            (
+                qualityValues.filter(Boolean).length /
+                qualityValues.length
+            ) * 100
         );
 
-    }
 
+    // --------------------------------------
+    // Overall ATS score
+    //
+    // Skills = 60%
+    // Sections = 25%
+    // Quality = 15%
+    // --------------------------------------
 
-    if (
-        !normalizedCV.includes(
-            "experience"
-        )
-    ) {
-
-        recommendations.push(
-            "Make your work experience section clear and easy for recruiters to identify."
+    const atsScore =
+        Math.round(
+            (skillMatchScore * 0.60) +
+            (sectionScore * 0.25) +
+            (qualityScore * 0.15)
         );
 
+
+    // --------------------------------------
+    // Rating
+    // --------------------------------------
+
+    let rating = "Needs Improvement";
+
+    if (atsScore >= 80) {
+        rating = "Strong Match";
+    } else if (atsScore >= 65) {
+        rating = "Good Match";
+    } else if (atsScore >= 45) {
+        rating = "Moderate Match";
     }
 
 
-    if (
-        recommendations.length === 0
-    ) {
+    // --------------------------------------
+    // Recommendations
+    // --------------------------------------
 
-        recommendations.push(
-            "Your CV contains the main technical skills detected in this job description. Review the wording and quantify your achievements where possible."
-        );
-
-    }
-
-
-    // ======================================
-    // MATCH RATING
-    // ======================================
-
-    let rating =
-        "Low Match";
+    const recommendations =
+        generateRecommendations({
+            missingSkills,
+            sections,
+            quality
+        });
 
 
-    if (
-        matchScore >= 80
-    ) {
-
-        rating =
-            "Strong Match";
-
-    } else if (
-        matchScore >= 60
-    ) {
-
-        rating =
-            "Good Match";
-
-    } else if (
-        matchScore >= 40
-    ) {
-
-        rating =
-            "Moderate Match";
-
-    }
-
-
-    // ======================================
-    // RETURN ANALYSIS
-    // ======================================
+    // --------------------------------------
+    // Result
+    // --------------------------------------
 
     return {
+        // Keep matchScore for compatibility
+        // with the existing frontend.
+        matchScore: atsScore,
 
-        matchScore,
-
+        atsScore,
         rating,
 
+        skillMatchScore,
+        sectionScore,
+        qualityScore,
+
         matchedSkills,
-
         missingSkills,
-
         cvSkills,
-
         requiredSkills,
 
+        sections,
+        quality,
+
         recommendations
-
     };
-
 };
 
 
