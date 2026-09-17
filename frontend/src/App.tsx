@@ -12,10 +12,10 @@ import SavedJobs from "./pages/SavedJobs";
 import Applications from "./pages/Applications";
 import Interviews from "./pages/Interviews";
 import Profile from "./pages/Profile";
+import CVAnalyzer from "./pages/CVAnalyzer";
+import AdminDashboard from "./pages/AdminDashboard";
 
 import AppLayout from "./components/AppLayout";
-
-import AdminDashboard from "./pages/AdminDashboard";
 import AdminRoute from "./components/AdminRoute";
 
 function App() {
@@ -24,54 +24,67 @@ function App() {
       <Routes>
 
         {/* Login */}
+
         <Route
           path="/login"
           element={<Login />}
         />
 
-        {/* Main application */}
-       <Route element={<AppLayout />}>
 
-  <Route
-    path="/dashboard"
-    element={<Dashboard />}
-  />
+        {/* Main Application */}
 
-  <Route
-    path="/jobs"
-    element={<Jobs />}
-  />
+        <Route element={<AppLayout />}>
 
-  <Route
-    path="/saved-jobs"
-    element={<SavedJobs />}
-  />
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
 
-  <Route
-    path="/applications"
-    element={<Applications />}
-  />
+          <Route
+            path="/jobs"
+            element={<Jobs />}
+          />
 
-  <Route
-    path="/interviews"
-    element={<Interviews />}
-  />
+          <Route
+            path="/saved-jobs"
+            element={<SavedJobs />}
+          />
 
-  <Route
-    path="/profile"
-    element={<Profile />}
-  />
+          <Route
+            path="/applications"
+            element={<Applications />}
+          />
 
-  <Route element={<AdminRoute />}>
-    <Route
-      path="/admin"
-      element={<AdminDashboard />}
-    />
-  </Route>
+          <Route
+            path="/cv-analyzer"
+            element={<CVAnalyzer />}
+          />
 
-</Route>
+          <Route
+            path="/interviews"
+            element={<Interviews />}
+          />
+
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+
+
+          {/* Admin Only */}
+
+          <Route element={<AdminRoute />}>
+            <Route
+              path="/admin"
+              element={<AdminDashboard />}
+            />
+          </Route>
+
+        </Route>
+
 
         {/* Unknown URLs */}
+
         <Route
           path="*"
           element={

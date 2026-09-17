@@ -3,6 +3,7 @@ import {
   Briefcase,
   Bookmark,
   FileText,
+  FileSearch,
   CalendarDays,
   User,
   LogOut,
@@ -123,6 +124,8 @@ const Sidebar = () => {
 
       <nav className="flex-1 px-4 py-6 space-y-2">
 
+        {/* Dashboard */}
+
         <NavLink
           to="/dashboard"
           className={linkClass}
@@ -131,6 +134,8 @@ const Sidebar = () => {
           <span>Dashboard</span>
         </NavLink>
 
+
+        {/* Jobs */}
 
         <NavLink
           to="/jobs"
@@ -141,6 +146,8 @@ const Sidebar = () => {
         </NavLink>
 
 
+        {/* Saved Jobs */}
+
         <NavLink
           to="/saved-jobs"
           className={linkClass}
@@ -149,6 +156,8 @@ const Sidebar = () => {
           <span>Saved Jobs</span>
         </NavLink>
 
+
+        {/* Applications */}
 
         <NavLink
           to="/applications"
@@ -159,6 +168,19 @@ const Sidebar = () => {
         </NavLink>
 
 
+        {/* CV Analyzer */}
+
+        <NavLink
+          to="/cv-analyzer"
+          className={linkClass}
+        >
+          <FileSearch size={20} />
+          <span>CV Analyzer</span>
+        </NavLink>
+
+
+        {/* Interviews */}
+
         <NavLink
           to="/interviews"
           className={linkClass}
@@ -167,6 +189,8 @@ const Sidebar = () => {
           <span>Interviews</span>
         </NavLink>
 
+
+        {/* Profile */}
 
         <NavLink
           to="/profile"
@@ -177,9 +201,7 @@ const Sidebar = () => {
         </NavLink>
 
 
-        {/* =====================================
-            ADMIN ONLY
-        ===================================== */}
+        {/* Admin - only visible to admins */}
 
         {isAdmin && (
           <NavLink

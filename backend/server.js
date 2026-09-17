@@ -18,7 +18,7 @@ const adminRoutes =
 const {
     createInterviewReminders
 } = require("./services/interviewReminderService");
-
+const cvAnalyzerRoutes = require("./routes/cvAnalyzerRoutes");
 
 const app = express();
 
@@ -123,7 +123,10 @@ app.use(
     externalJobsRoutes
 );
 
-
+app.use(
+    "/api/cv-analyzer",
+    cvAnalyzerRoutes
+);
 // ==========================================
 // HEALTH CHECK
 // ==========================================
