@@ -15,6 +15,9 @@ import Profile from "./pages/Profile";
 
 import AppLayout from "./components/AppLayout";
 
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminRoute from "./components/AdminRoute";
+
 function App() {
   return (
     <BrowserRouter>
@@ -27,39 +30,46 @@ function App() {
         />
 
         {/* Main application */}
-        <Route element={<AppLayout />}>
+       <Route element={<AppLayout />}>
 
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
+  <Route
+    path="/dashboard"
+    element={<Dashboard />}
+  />
 
-          <Route
-            path="/jobs"
-            element={<Jobs />}
-          />
+  <Route
+    path="/jobs"
+    element={<Jobs />}
+  />
 
-          <Route
-            path="/saved-jobs"
-            element={<SavedJobs />}
-          />
+  <Route
+    path="/saved-jobs"
+    element={<SavedJobs />}
+  />
 
-          <Route
-            path="/applications"
-            element={<Applications />}
-          />
+  <Route
+    path="/applications"
+    element={<Applications />}
+  />
 
-          <Route
-            path="/interviews"
-            element={<Interviews />}
-          />
+  <Route
+    path="/interviews"
+    element={<Interviews />}
+  />
 
-          <Route
-            path="/profile"
-            element={<Profile />}
-          />
+  <Route
+    path="/profile"
+    element={<Profile />}
+  />
 
-        </Route>
+  <Route element={<AdminRoute />}>
+    <Route
+      path="/admin"
+      element={<AdminDashboard />}
+    />
+  </Route>
+
+</Route>
 
         {/* Unknown URLs */}
         <Route

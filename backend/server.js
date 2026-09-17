@@ -12,6 +12,8 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const externalJobsRoutes = require("./routes/externalJobsRoutes");
 const interviewsRoutes = require("./routes/interviewsRoutes");
 const notificationsRoutes = require("./routes/notificationsRoutes");
+const adminRoutes =
+    require("./routes/adminRoutes");
 
 const {
     createInterviewReminders
@@ -109,7 +111,12 @@ app.use(
 );
 
 
-// External Jobs
+// Admin
+
+app.use(
+    "/api/admin",
+    adminRoutes
+);
 
 app.use(
     "/api/external-jobs",

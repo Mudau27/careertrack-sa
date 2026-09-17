@@ -6,12 +6,15 @@ import {
   CalendarDays,
   User,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
 import {
   NavLink,
   useNavigate,
 } from "react-router-dom";
+
+
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -33,6 +36,41 @@ const Sidebar = () => {
         : "text-gray-300 hover:bg-slate-800 hover:text-white"
     }`;
 
+    const getRoleFromToken = () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      return null;
+    }
+
+    const payloadPart = token.split(".")[1];
+
+    const base64 = payloadPart
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const payload = JSON.parse(
+      decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map(
+            (char) =>
+              "%" +
+              (
+                "00" +
+                char.charCodeAt(0).toString(16)
+              ).slice(-2)
+          )
+          .join("")
+      )
+    );
+
+    return payload.role;
+  } catch {
+    return null;
+  }
+};
   return (
     <aside className="w-64 min-h-screen bg-slate-900 text-white flex flex-col">
 
