@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
 
 const pool = require("./config/database");
+const swaggerSpec = require("./config/swagger");
 
 const authRoutes = require("./routes/authRoutes");
 const profileRoutes = require("./routes/profileRoutes");
@@ -14,6 +16,7 @@ const interviewsRoutes = require("./routes/interviewsRoutes");
 const notificationsRoutes = require("./routes/notificationsRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const cvAnalyzerRoutes = require("./routes/cvAnalyzerRoutes");
+
 
 const app = express();
 
@@ -32,6 +35,23 @@ app.use(express.json());
 app.use(
     "/uploads",
     express.static("uploads")
+);
+
+
+// ==========================================
+// API DOCUMENTATION
+// ==========================================
+
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(
+        swaggerSpec,
+        {
+            customSiteTitle:
+                "CareerTrack SA API Documentation"
+        }
+    )
 );
 
 
@@ -132,6 +152,30 @@ app.use(
 // HEALTH CHECK
 // ==========================================
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Check API health
+ *     description: Checks whether the CareerTrack SA backend API is running.
+ *     tags:
+ *       - System
+ *     responses:
+ *       200:
+ *         description: Backend is running successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: CareerTrack SA backend is running!
+ */
+
 app.get(
     "/api/health",
     (req, res) => {
@@ -149,6 +193,21 @@ app.get(
 // ==========================================
 // DATABASE TEST
 // ==========================================
+
+/**
+ * @swagger
+ * /api/db-test:
+ *   get:
+ *     summary: Test PostgreSQL connection
+ *     description: Checks whether the CareerTrack SA backend can connect to PostgreSQL.
+ *     tags:
+ *       - System
+ *     responses:
+ *       200:
+ *         description: PostgreSQL connection successful
+ *       500:
+ *         description: PostgreSQL connection failed
+ */
 
 app.get(
     "/api/db-test",
