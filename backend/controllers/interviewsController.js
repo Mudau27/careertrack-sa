@@ -29,15 +29,13 @@ const formatInterviewDate = (date) => {
 
 const createInterview = async (req, res) => {
 
-    const client =
-        await pool.connect();
+    const client = await pool.connect();
 
     try {
 
         await client.query("BEGIN");
 
-        const userId =
-            req.user.id;
+        const userId = req.user.id;
 
         const {
             application_id,
@@ -54,33 +52,23 @@ const createInterview = async (req, res) => {
 
         if (!application_id) {
 
-            await client.query(
-                "ROLLBACK"
-            );
+            await client.query("ROLLBACK");
 
-            return res
-                .status(400)
-                .json({
-                    status: "error",
-                    message:
-                        "Application ID is required."
-                });
+            return res.status(400).json({
+                status: "error",
+                message: "Application ID is required."
+            });
         }
 
 
         if (!interview_date) {
 
-            await client.query(
-                "ROLLBACK"
-            );
+            await client.query("ROLLBACK");
 
-            return res
-                .status(400)
-                .json({
-                    status: "error",
-                    message:
-                        "Interview date is required."
-                });
+            return res.status(400).json({
+                status: "error",
+                message: "Interview date is required."
+            });
         }
 
 
@@ -89,86 +77,69 @@ const createInterview = async (req, res) => {
         // Also get job information
         // -----------------------------
 
-        const application =
-            await client.query(
-                `
-                SELECT
-                    a.id,
-                    j.title,
-                    j.company
+        const application = await client.query(
+            `
+            SELECT
+                a.id,
+                j.title,
+                j.company
 
-                FROM applications a
+            FROM applications a
 
-                INNER JOIN jobs j
-                    ON a.job_id = j.id
+            INNER JOIN jobs j
+                ON a.job_id = j.id
 
-                WHERE a.id = $1
-                AND a.user_id = $2
-                `,
-                [
-                    application_id,
-                    userId
-                ]
-            );
+            WHERE a.id = $1
+            AND a.user_id = $2
+            `,
+            [
+                application_id,
+                userId
+            ]
+        );
 
 
-        if (
-            application.rows.length === 0
-        ) {
+        if (application.rows.length === 0) {
 
-            await client.query(
-                "ROLLBACK"
-            );
+            await client.query("ROLLBACK");
 
-            return res
-                .status(404)
-                .json({
-                    status: "error",
-                    message:
-                        "Application not found."
-                });
+            return res.status(404).json({
+                status: "error",
+                message: "Application not found."
+            });
         }
 
 
-        const applicationData =
-            application.rows[0];
+        const applicationData = application.rows[0];
 
 
         // -----------------------------
         // Check duplicate interview
         // -----------------------------
 
-        const existingInterview =
-            await client.query(
-                `
-                SELECT id
+        const existingInterview = await client.query(
+            `
+            SELECT id
 
-                FROM interviews
+            FROM interviews
 
-                WHERE application_id = $1
-                `,
-                [
-                    application_id
-                ]
-            );
+            WHERE application_id = $1
+            `,
+            [
+                application_id
+            ]
+        );
 
 
-        if (
-            existingInterview.rows.length >
-            0
-        ) {
+        if (existingInterview.rows.length > 0) {
 
-            await client.query(
-                "ROLLBACK"
-            );
+            await client.query("ROLLBACK");
 
-            return res
-                .status(409)
-                .json({
-                    status: "error",
-                    message:
-                        "An interview is already scheduled for this application."
-                });
+            return res.status(409).json({
+                status: "error",
+                message:
+                    "An interview is already scheduled for this application."
+            });
         }
 
 
@@ -176,41 +147,39 @@ const createInterview = async (req, res) => {
         // Create interview
         // -----------------------------
 
-        const result =
-            await client.query(
-                `
-                INSERT INTO interviews
-                (
-                    application_id,
-                    interview_date,
-                    interview_type,
-                    location,
-                    notes
-                )
+        const result = await client.query(
+            `
+            INSERT INTO interviews
+            (
+                application_id,
+                interview_date,
+                interview_type,
+                location,
+                notes
+            )
 
-                VALUES
-                (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5
-                )
+            VALUES
+            (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5
+            )
 
-                RETURNING *
-                `,
-                [
-                    application_id,
-                    interview_date,
-                    interview_type || null,
-                    location || null,
-                    notes || null
-                ]
-            );
+            RETURNING *
+            `,
+            [
+                application_id,
+                interview_date,
+                interview_type || null,
+                location || null,
+                notes || null
+            ]
+        );
 
 
-        const newInterview =
-            result.rows[0];
+        const newInterview = result.rows[0];
 
 
         // -----------------------------
@@ -237,10 +206,9 @@ const createInterview = async (req, res) => {
         // Create notification
         // -----------------------------
 
-        const formattedDate =
-            formatInterviewDate(
-                interview_date
-            );
+        const formattedDate = formatInterviewDate(
+            interview_date
+        );
 
 
         await client.query(
@@ -281,30 +249,19 @@ const createInterview = async (req, res) => {
         // Commit transaction
         // -----------------------------
 
-        await client.query(
-            "COMMIT"
-        );
+        await client.query("COMMIT");
 
 
-        res
-            .status(201)
-            .json({
-                status: "success",
-
-                message:
-                    "Interview scheduled successfully.",
-
-                interview:
-                    newInterview
-            });
+        res.status(201).json({
+            status: "success",
+            message: "Interview scheduled successfully.",
+            interview: newInterview
+        });
 
 
     } catch (error) {
 
-        await client.query(
-            "ROLLBACK"
-        );
-
+        await client.query("ROLLBACK");
 
         console.error(
             "Create interview error:",
@@ -312,14 +269,11 @@ const createInterview = async (req, res) => {
         );
 
 
-        res
-            .status(500)
-            .json({
-                status: "error",
-
-                message:
-                    "Server error while scheduling interview."
-            });
+        res.status(500).json({
+            status: "error",
+            message:
+                "Server error while scheduling interview."
+        });
 
     } finally {
 
@@ -332,85 +286,73 @@ const createInterview = async (req, res) => {
 // GET ALL INTERVIEWS
 // ==========================================
 
-const getInterviews = async (
-    req,
-    res
-) => {
+const getInterviews = async (req, res) => {
 
     try {
 
-        const userId =
-            req.user.id;
+        const userId = req.user.id;
 
 
-        const result =
-            await pool.query(
-                `
-                SELECT
+        const result = await pool.query(
+            `
+            SELECT
 
-                    i.id,
+                i.id,
 
-                    i.application_id,
+                i.application_id,
 
-                    i.interview_date,
+                i.interview_date,
 
-                    i.interview_type,
+                i.interview_type,
 
-                    i.location,
+                i.location,
 
-                    i.notes,
+                i.notes,
 
-                    i.created_at,
-
-
-                    a.status,
+                i.created_at,
 
 
-                    j.id AS job_id,
-
-                    j.title,
-
-                    j.company,
-
-                    j.location AS job_location
+                a.status,
 
 
-                FROM interviews i
+                j.id AS job_id,
+
+                j.title,
+
+                j.company,
+
+                j.location AS job_location
 
 
-                INNER JOIN applications a
-
-                    ON i.application_id =
-                    a.id
+            FROM interviews i
 
 
-                INNER JOIN jobs j
+            INNER JOIN applications a
 
-                    ON a.job_id =
-                    j.id
-
-
-                WHERE a.user_id = $1
+                ON i.application_id = a.id
 
 
-                ORDER BY
-                    i.interview_date ASC
-                `,
-                [
-                    userId
-                ]
-            );
+            INNER JOIN jobs j
+
+                ON a.job_id = j.id
+
+
+            WHERE a.user_id = $1
+
+
+            ORDER BY
+                i.interview_date ASC
+            `,
+            [
+                userId
+            ]
+        );
 
 
         res.json({
-
             status: "success",
-
-            count:
-                result.rows.length,
-
-            interviews:
-                result.rows
+            count: result.rows.length,
+            interviews: result.rows
         });
 
 
@@ -423,9 +365,7 @@ const getInterviews = async (
 
 
         res.status(500).json({
-
             status: "error",
-
             message:
                 "Server error while retrieving interviews."
         });
@@ -437,491 +377,406 @@ const getInterviews = async (
 // GET ONE INTERVIEW
 // ==========================================
 
-const getInterviewById =
-    async (
-        req,
-        res
-    ) => {
+const getInterviewById = async (req, res) => {
 
-        try {
+    try {
 
-            const userId =
-                req.user.id;
+        const userId = req.user.id;
 
-
-            const {
-                id
-            } = req.params;
+        const {
+            id
+        } = req.params;
 
 
-            const result =
-                await pool.query(
-                    `
-                    SELECT
+        const result = await pool.query(
+            `
+            SELECT
 
-                        i.id,
+                i.id,
 
-                        i.application_id,
+                i.application_id,
 
-                        i.interview_date,
+                i.interview_date,
 
-                        i.interview_type,
+                i.interview_type,
 
-                        i.location,
+                i.location,
 
-                        i.notes,
+                i.notes,
 
-                        i.created_at,
-
-
-                        a.status,
+                i.created_at,
 
 
-                        j.id AS job_id,
-
-                        j.title,
-
-                        j.company,
-
-                        j.location AS job_location
+                a.status,
 
 
-                    FROM interviews i
+                j.id AS job_id,
+
+                j.title,
+
+                j.company,
+
+                j.location AS job_location
 
 
-                    INNER JOIN applications a
-
-                        ON i.application_id =
-                        a.id
+            FROM interviews i
 
 
-                    INNER JOIN jobs j
+            INNER JOIN applications a
 
-                        ON a.job_id =
-                        j.id
-
-
-                    WHERE i.id = $1
-
-                    AND a.user_id = $2
-                    `,
-                    [
-                        id,
-                        userId
-                    ]
-                );
+                ON i.application_id = a.id
 
 
-            if (
-                result.rows.length ===
-                0
-            ) {
+            INNER JOIN jobs j
 
-                return res
-                    .status(404)
-                    .json({
-
-                        status:
-                            "error",
-
-                        message:
-                            "Interview not found."
-                    });
-            }
+                ON a.job_id = j.id
 
 
-            res.json({
+            WHERE i.id = $1
 
-                status:
-                    "success",
-
-                interview:
-                    result.rows[0]
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "Get interview error:",
-                error
-            );
+            AND a.user_id = $2
+            `,
+            [
+                id,
+                userId
+            ]
+        );
 
 
-            res.status(500).json({
+        if (result.rows.length === 0) {
 
-                status:
-                    "error",
-
-                message:
-                    "Server error while retrieving interview."
+            return res.status(404).json({
+                status: "error",
+                message: "Interview not found."
             });
         }
-    };
+
+
+        res.json({
+            status: "success",
+            interview: result.rows[0]
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Get interview error:",
+            error
+        );
+
+
+        res.status(500).json({
+            status: "error",
+            message:
+                "Server error while retrieving interview."
+        });
+    }
+};
 
 
 // ==========================================
 // UPDATE INTERVIEW
 // ==========================================
 
-const updateInterview =
-    async (
-        req,
-        res
-    ) => {
+const updateInterview = async (req, res) => {
 
-        const client =
-            await pool.connect();
+    const client = await pool.connect();
 
 
-        try {
+    try {
 
-            await client.query(
-                "BEGIN"
-            );
+        await client.query("BEGIN");
 
 
-            const userId =
-                req.user.id;
+        const userId = req.user.id;
 
+        const {
+            id
+        } = req.params;
 
-            const {
-                id
-            } = req.params;
 
+        const {
+            interview_date,
+            interview_type,
+            location,
+            notes
+        } = req.body;
 
-            const {
-                interview_date,
-                interview_type,
-                location,
-                notes
-            } = req.body;
 
+        // -----------------------------
+        // Check interview ownership
+        // -----------------------------
 
-            // -----------------------------
-            // Check interview ownership
-            // -----------------------------
+        const interviewCheck = await client.query(
+            `
+            SELECT
 
-            const interviewCheck =
-                await client.query(
-                    `
-                    SELECT
+                i.id,
 
-                        i.id,
+                i.interview_date,
 
-                        i.interview_date,
+                j.title,
 
-                        j.title,
+                j.company
 
-                        j.company
 
+            FROM interviews i
 
-                    FROM interviews i
 
+            INNER JOIN applications a
 
-                    INNER JOIN applications a
+                ON i.application_id = a.id
 
-                        ON i.application_id =
-                        a.id
 
+            INNER JOIN jobs j
 
-                    INNER JOIN jobs j
+                ON a.job_id = j.id
 
-                        ON a.job_id =
-                        j.id
 
+            WHERE i.id = $1
 
-                    WHERE i.id = $1
+            AND a.user_id = $2
+            `,
+            [
+                id,
+                userId
+            ]
+        );
 
-                    AND a.user_id = $2
-                    `,
-                    [
-                        id,
-                        userId
-                    ]
-                );
 
+        if (interviewCheck.rows.length === 0) {
 
-            if (
-                interviewCheck.rows.length ===
-                0
-            ) {
+            await client.query("ROLLBACK");
 
-                await client.query(
-                    "ROLLBACK"
-                );
 
-
-                return res
-                    .status(404)
-                    .json({
-
-                        status:
-                            "error",
-
-                        message:
-                            "Interview not found."
-                    });
-            }
-
-
-            const interviewData =
-                interviewCheck.rows[0];
-
-
-            // -----------------------------
-            // Update interview
-            // -----------------------------
-
-            const result =
-                await client.query(
-                    `
-                    UPDATE interviews
-
-                    SET
-
-                        interview_date =
-                            COALESCE(
-                                $1,
-                                interview_date
-                            ),
-
-                        interview_type =
-                            COALESCE(
-                                $2,
-                                interview_type
-                            ),
-
-                        location =
-                            COALESCE(
-                                $3,
-                                location
-                            ),
-
-                        notes =
-                            COALESCE(
-                                $4,
-                                notes
-                            )
-
-
-                    WHERE id = $5
-
-
-                    RETURNING *
-                    `,
-                    [
-                        interview_date || null,
-
-                        interview_type || null,
-
-                        location || null,
-
-                        notes || null,
-
-                        id
-                    ]
-                );
-
-
-            const updatedInterview =
-                result.rows[0];
-
-
-            // -----------------------------
-            // Notification
-            // -----------------------------
-
-            const formattedDate =
-                formatInterviewDate(
-                    updatedInterview
-                        .interview_date
-                );
-
-
-            await client.query(
-                `
-                INSERT INTO notifications
-                (
-                    user_id,
-                    title,
-                    message,
-                    type,
-                    related_interview_id
-                )
-
-                VALUES
-                (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5
-                )
-                `,
-                [
-                    userId,
-
-                    "Interview Updated",
-
-                    `Your interview for ${interviewData.title} at ${interviewData.company} has been updated. It is scheduled for ${formattedDate}.`,
-
-                    "interview",
-
-                    id
-                ]
-            );
-
-
-            await client.query(
-                "COMMIT"
-            );
-
-
-            res.json({
-
-                status:
-                    "success",
-
-                message:
-                    "Interview updated successfully.",
-
-                interview:
-                    updatedInterview
+            return res.status(404).json({
+                status: "error",
+                message: "Interview not found."
             });
-
-
-        } catch (error) {
-
-            await client.query(
-                "ROLLBACK"
-            );
-
-
-            console.error(
-                "Update interview error:",
-                error
-            );
-
-
-            res.status(500).json({
-
-                status:
-                    "error",
-
-                message:
-                    "Server error while updating interview."
-            });
-
-
-        } finally {
-
-            client.release();
         }
-    };
+
+
+        const interviewData =
+            interviewCheck.rows[0];
+
+
+        // -----------------------------
+        // Update interview
+        // -----------------------------
+
+        const result = await client.query(
+            `
+            UPDATE interviews
+
+            SET
+
+                interview_date =
+                    COALESCE(
+                        $1,
+                        interview_date
+                    ),
+
+                interview_type =
+                    COALESCE(
+                        $2,
+                        interview_type
+                    ),
+
+                location =
+                    COALESCE(
+                        $3,
+                        location
+                    ),
+
+                notes =
+                    COALESCE(
+                        $4,
+                        notes
+                    )
+
+
+            WHERE id = $5
+
+
+            RETURNING *
+            `,
+            [
+                interview_date || null,
+
+                interview_type || null,
+
+                location || null,
+
+                notes || null,
+
+                id
+            ]
+        );
+
+
+        const updatedInterview =
+            result.rows[0];
+
+
+        // -----------------------------
+        // Create notification
+        // -----------------------------
+
+        const formattedDate =
+            formatInterviewDate(
+                updatedInterview.interview_date
+            );
+
+
+        await client.query(
+            `
+            INSERT INTO notifications
+            (
+                user_id,
+                title,
+                message,
+                type,
+                related_interview_id
+            )
+
+            VALUES
+            (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5
+            )
+            `,
+            [
+                userId,
+
+                "Interview Updated",
+
+                `Your interview for ${interviewData.title} at ${interviewData.company} has been updated. It is scheduled for ${formattedDate}.`,
+
+                "interview",
+
+                id
+            ]
+        );
+
+
+        await client.query("COMMIT");
+
+
+        res.json({
+            status: "success",
+            message:
+                "Interview updated successfully.",
+            interview: updatedInterview
+        });
+
+
+    } catch (error) {
+
+        await client.query("ROLLBACK");
+
+
+        console.error(
+            "Update interview error:",
+            error
+        );
+
+
+        res.status(500).json({
+            status: "error",
+            message:
+                "Server error while updating interview."
+        });
+
+
+    } finally {
+
+        client.release();
+    }
+};
 
 
 // ==========================================
 // DELETE INTERVIEW
 // ==========================================
 
-const deleteInterview =
-    async (
-        req,
-        res
-    ) => {
+const deleteInterview = async (req, res) => {
 
-        try {
+    try {
 
-            const userId =
-                req.user.id;
+        const userId = req.user.id;
 
-
-            const {
-                id
-            } = req.params;
+        const {
+            id
+        } = req.params;
 
 
-            const result =
-                await pool.query(
-                    `
-                    DELETE FROM interviews
+        const result = await pool.query(
+            `
+            DELETE FROM interviews
 
 
-                    WHERE id IN
-                    (
-                        SELECT i.id
+            WHERE id IN
+            (
+                SELECT i.id
 
-                        FROM interviews i
-
-
-                        INNER JOIN applications a
-
-                            ON i.application_id =
-                            a.id
+                FROM interviews i
 
 
-                        WHERE i.id = $1
+                INNER JOIN applications a
 
-                        AND a.user_id = $2
-                    )
-
-
-                    RETURNING *
-                    `,
-                    [
-                        id,
-                        userId
-                    ]
-                );
+                    ON i.application_id = a.id
 
 
-            if (
-                result.rows.length ===
-                0
-            ) {
+                WHERE i.id = $1
 
-                return res
-                    .status(404)
-                    .json({
-
-                        status:
-                            "error",
-
-                        message:
-                            "Interview not found."
-                    });
-            }
+                AND a.user_id = $2
+            )
 
 
-            res.json({
-
-                status:
-                    "success",
-
-                message:
-                    "Interview deleted successfully."
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "Delete interview error:",
-                error
-            );
+            RETURNING *
+            `,
+            [
+                id,
+                userId
+            ]
+        );
 
 
-            res.status(500).json({
+        if (result.rows.length === 0) {
 
-                status:
-                    "error",
-
-                message:
-                    "Server error while deleting interview."
+            return res.status(404).json({
+                status: "error",
+                message: "Interview not found."
             });
         }
-    };
+
+
+        res.json({
+            status: "success",
+            message:
+                "Interview deleted successfully."
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Delete interview error:",
+            error
+        );
+
+
+        res.status(500).json({
+            status: "error",
+            message:
+                "Server error while deleting interview."
+        });
+    }
+};
 
 
 // ==========================================
@@ -929,14 +784,9 @@ const deleteInterview =
 // ==========================================
 
 module.exports = {
-
     createInterview,
-
     getInterviews,
-
     getInterviewById,
-
     updateInterview,
-
     deleteInterview
 };

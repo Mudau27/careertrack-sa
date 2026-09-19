@@ -14,8 +14,7 @@ const swaggerOptions = {
         servers: [
             {
                 url: "http://localhost:5000",
-                description:
-                    "Local development server"
+                description: "Local development server"
             }
         ],
 
@@ -49,6 +48,11 @@ const swaggerOptions = {
                 name: "Jobs",
                 description:
                     "Job management"
+            },
+            {
+                name: "Saved Jobs",
+                description:
+                    "Saved job management"
             },
             {
                 name: "Applications",
