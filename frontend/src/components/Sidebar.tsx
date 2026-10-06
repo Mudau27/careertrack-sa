@@ -109,9 +109,12 @@ const Sidebar = () => {
 
       <div className="px-6 py-6 border-b border-slate-700">
 
-        <h1 className="text-2xl font-bold">
-          CareerTrack SA
-        </h1>
+        <h1
+         className="font-semibold"
+         style={{ fontSize: "35px" }}
+      >
+       CareerTrack SA
+       </h1>
 
         <p className="text-sm text-gray-400 mt-1">
           Your career journey

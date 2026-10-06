@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+
 import {
-  Briefcase,
-  CheckCircle,
   Clock,
-  XCircle,
-  CalendarDays,
   MapPin,
   Video,
   Bell,
+  ExternalLink,
 } from "lucide-react";
 
 import {
@@ -19,6 +18,10 @@ import {
 } from "recharts";
 
 import api from "../services/api";
+
+/* =====================================================
+   TYPES
+===================================================== */
 
 interface Statistics {
   total_applications: number;
@@ -55,202 +58,452 @@ interface Interview {
   job_location: string;
 }
 
+/* =====================================================
+   STATUS COLOURS
+===================================================== */
+
+const STATUS_STYLES: Record<
+  string,
+  {
+    dot: string;
+    badge: string;
+  }
+> = {
+  applied: {
+    dot: "#2563eb",
+    badge:
+      "bg-blue-50 text-blue-700 ring-blue-600/20",
+  },
+
+  interview: {
+    dot: "#d97706",
+    badge:
+      "bg-amber-50 text-amber-700 ring-amber-600/20",
+  },
+
+  offer: {
+    dot: "#059669",
+    badge:
+      "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  },
+
+  rejected: {
+    dot: "#dc2626",
+    badge:
+      "bg-red-50 text-red-700 ring-red-600/20",
+  },
+};
+
+const FALLBACK_STYLE = {
+  dot: "#64748b",
+  badge:
+    "bg-slate-100 text-slate-700 ring-slate-500/20",
+};
+
+const getStatusStyle = (status: string) => {
+  const key = status.toLowerCase();
+
+  const match = Object.keys(
+    STATUS_STYLES
+  ).find((statusName) =>
+    key.includes(statusName)
+  );
+
+  return match
+    ? STATUS_STYLES[match]
+    : FALLBACK_STYLE;
+};
+
+/* =====================================================
+   HELPERS
+===================================================== */
+
+const formatTime = (date: string) => {
+  return new Date(date).toLocaleTimeString(
+    "en-ZA",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+};
+
+const getInterviewReminder = (
+  interviewDate: string
+) => {
+  const now = new Date();
+
+  const interview =
+    new Date(interviewDate);
+
+  const difference =
+    interview.getTime() -
+    now.getTime();
+
+  if (difference <= 0) {
+    return null;
+  }
+
+  const minutes = Math.floor(
+    difference / (1000 * 60)
+  );
+
+  const days = Math.floor(
+    difference /
+      (1000 * 60 * 60 * 24)
+  );
+
+  const tomorrow =
+    new Date(now);
+
+  tomorrow.setDate(
+    tomorrow.getDate() + 1
+  );
+
+  if (minutes < 60) {
+    return `Starts in ${minutes} minute${
+      minutes === 1 ? "" : "s"
+    }`;
+  }
+
+  if (
+    interview.toDateString() ===
+    now.toDateString()
+  ) {
+    return `Today at ${formatTime(
+      interviewDate
+    )}`;
+  }
+
+  if (
+    interview.toDateString() ===
+    tomorrow.toDateString()
+  ) {
+    return `Tomorrow at ${formatTime(
+      interviewDate
+    )}`;
+  }
+
+  if (days <= 7) {
+    return `In ${days} days`;
+  }
+
+  return null;
+};
+
+const isLink = (
+  value: string | null
+): value is string => {
+  return Boolean(
+    value &&
+      value.startsWith("http")
+  );
+};
+
+/* =====================================================
+   CARD
+===================================================== */
+
+const Card = ({
+  title,
+  subtitle,
+  children,
+  className = "",
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  className?: string;
+}) => {
+  return (
+    <section
+      className={`
+        rounded-2xl
+        border
+        border-slate-200
+        bg-white
+        p-6
+        shadow-sm
+        ${className}
+      `}
+    >
+      <div className="mb-5">
+
+        {/* FORCE TITLE TO BLACK */}
+
+        <h2
+          className="text-lg font-bold"
+          style={{
+            color: "#000000",
+          }}
+        >
+          {title}
+        </h2>
+
+        {subtitle && (
+          <p
+            className="mt-1 text-sm"
+            style={{
+              color: "#475569",
+            }}
+          >
+            {subtitle}
+          </p>
+        )}
+
+      </div>
+
+      {children}
+    </section>
+  );
+};
+
+/* =====================================================
+   STAT CARD
+===================================================== */
+
+const StatCard = ({
+  label,
+  value,
+  loading,
+}: {
+  label: string;
+  value: number;
+  loading: boolean;
+}) => {
+
+  const getTextColor = () => {
+    switch (label) {
+      case "Applications":
+        return "#2563eb"; // Blue
+
+      case "Interviews":
+        return "#d97706"; // Amber / Yellow
+
+      case "Offers":
+        return "#059669"; // Green
+
+      case "Rejected":
+        return "#dc2626"; // Red
+
+      default:
+        return "#000000";
+    }
+  };
+
+  const textColor = getTextColor();
+
+  return (
+    <div
+      className="
+        rounded-2xl
+        border
+        border-slate-200
+        bg-white
+        p-5
+        shadow-sm
+        transition
+        duration-200
+        hover:-translate-y-0.5
+        hover:shadow-md
+      "
+    >
+      {/* Card name */}
+      <p
+        className="text-sm font-bold"
+        style={{
+          color: textColor,
+        }}
+      >
+        {label}
+      </p>
+
+      {/* Number */}
+      <p
+        className="mt-2 text-3xl font-bold tabular-nums"
+        style={{
+          color: "#000000",
+        }}
+      >
+        {loading ? (
+          <span className="inline-block h-8 w-12 animate-pulse rounded bg-slate-100" />
+        ) : (
+          value
+        )}
+      </p>
+    </div>
+  );
+};
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+const EmptyState = ({
+  message,
+}: {
+  message: string;
+}) => {
+  return (
+    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+
+      <p
+        className="text-sm"
+        style={{
+          color: "#475569",
+        }}
+      >
+        {message}
+      </p>
+
+    </div>
+  );
+};
+
+/* =====================================================
+   DASHBOARD
+===================================================== */
+
 const Dashboard = () => {
-  const [statistics, setStatistics] =
-    useState<Statistics | null>(null);
 
-  const [applications, setApplications] =
-    useState<Application[]>([]);
+  const [
+    statistics,
+    setStatistics,
+  ] = useState<Statistics | null>(
+    null
+  );
 
-  const [interviews, setInterviews] =
-    useState<Interview[]>([]);
+  const [
+    applications,
+    setApplications,
+  ] = useState<Application[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    interviews,
+    setInterviews,
+  ] = useState<Interview[]>([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  /* =====================================================
+     FETCH DASHBOARD DATA
+
+     These are your ORIGINAL working API calls.
+     Nothing new has been added.
+  ===================================================== */
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [
-          statisticsResponse,
-          applicationsResponse,
-          interviewsResponse,
-        ] = await Promise.all([
-          api.get("/dashboard/statistics"),
-          api.get("/applications"),
-          api.get("/interviews"),
-        ]);
 
-        setStatistics(
-          statisticsResponse.data.statistics
-        );
+    const fetchDashboardData =
+      async () => {
 
-        setApplications(
-          applicationsResponse.data.applications || []
-        );
+        try {
 
-        setInterviews(
-          interviewsResponse.data.interviews || []
-        );
-      } catch (error) {
-        console.error(
-          "Failed to fetch dashboard data:",
-          error
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+          const [
+            statisticsResponse,
+            applicationsResponse,
+            interviewsResponse,
+          ] = await Promise.all([
+
+            api.get(
+              "/dashboard/statistics"
+            ),
+
+            api.get(
+              "/applications"
+            ),
+
+            api.get(
+              "/interviews"
+            ),
+
+          ]);
+
+          setStatistics(
+            statisticsResponse.data
+              .statistics
+          );
+
+          setApplications(
+            applicationsResponse.data
+              .applications || []
+          );
+
+          setInterviews(
+            interviewsResponse.data
+              .interviews || []
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Failed to fetch dashboard data:",
+            error
+          );
+
+        } finally {
+
+          setLoading(false);
+
+        }
+      };
 
     fetchDashboardData();
+
   }, []);
 
-  const chartData = statistics
-    ? Object.entries(
-        statistics.applications_by_status
-      ).map(([name, value]) => ({
-        name,
-        value,
-      }))
-    : [];
+  /* =====================================================
+     CHART DATA
+  ===================================================== */
 
-  const chartColors = [
-    "#2563eb",
-    "#f59e0b",
-    "#16a34a",
-    "#dc2626",
-    "#7c3aed",
-  ];
+  const chartData =
+    statistics
+      ? Object.entries(
+          statistics.applications_by_status
+        ).map(
+          ([name, value]) => ({
+            name,
+            value,
+          })
+        )
+      : [];
 
-  const upcomingInterviews = interviews
-    .filter(
-      (interview) =>
-        new Date(
-          interview.interview_date
-        ) >= new Date()
-    )
-    .sort(
-      (a, b) =>
-        new Date(
-          a.interview_date
-        ).getTime() -
-        new Date(
-          b.interview_date
-        ).getTime()
-    )
-    .slice(0, 3);
-
-  const formatInterviewDate = (
-    interviewDate: string
-  ) => {
-    return new Date(
-      interviewDate
-    ).toLocaleDateString(
-      "en-ZA",
-      {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }
-    );
-  };
-
-  const formatInterviewTime = (
-    interviewDate: string
-  ) => {
-    return new Date(
-      interviewDate
-    ).toLocaleTimeString(
-      "en-ZA",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
-  };
-
-  const getInterviewReminder = (
-    interviewDate: string
-  ) => {
-    const now = new Date();
-    const interview =
-      new Date(interviewDate);
-
-    const difference =
-      interview.getTime() -
-      now.getTime();
-
-    if (difference <= 0) {
-      return null;
-    }
-
-    const minutes =
-      Math.floor(
-        difference /
-          (1000 * 60)
-      );
-
-    const hours =
-      Math.floor(
-        difference /
-          (1000 * 60 * 60)
-      );
-
-    const days =
-      Math.floor(
-        difference /
-          (1000 * 60 * 60 * 24)
-      );
-
-    const nowDate =
-      now.toDateString();
-
-    const interviewDay =
-      interview.toDateString();
-
-    const tomorrow =
-      new Date(now);
-
-    tomorrow.setDate(
-      tomorrow.getDate() + 1
+  const totalInChart =
+    chartData.reduce(
+      (sum, item) =>
+        sum + item.value,
+      0
     );
 
-    const tomorrowDate =
-      tomorrow.toDateString();
+  /* =====================================================
+     UPCOMING INTERVIEWS
+  ===================================================== */
 
-    if (minutes < 60) {
-      return `Interview starts in ${minutes} minute${
-        minutes === 1 ? "" : "s"
-      }`;
-    }
-
-    if (
-      interviewDay === nowDate
-    ) {
-      return `Interview today at ${formatInterviewTime(
-        interviewDate
-      )}`;
-    }
-
-    if (
-      interviewDay === tomorrowDate
-    ) {
-      return `Interview tomorrow at ${formatInterviewTime(
-        interviewDate
-      )}`;
-    }
-
-    if (days <= 7) {
-      return `Interview in ${days} days`;
-    }
-
-    return null;
-  };
+  const upcomingInterviews =
+    interviews
+      .filter(
+        (interview) =>
+          new Date(
+            interview.interview_date
+          ) >= new Date()
+      )
+      .sort(
+        (a, b) =>
+          new Date(
+            a.interview_date
+          ).getTime() -
+          new Date(
+            b.interview_date
+          ).getTime()
+      )
+      .slice(0, 3);
 
   const nearestInterview =
-    upcomingInterviews.length > 0
-      ? upcomingInterviews[0]
-      : null;
+    upcomingInterviews[0] ??
+    null;
 
   const nearestReminder =
     nearestInterview
@@ -259,738 +512,696 @@ const Dashboard = () => {
         )
       : null;
 
+  const today =
+    new Date().toLocaleDateString(
+      "en-ZA",
+      {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }
+    );
+
+  /* =====================================================
+     UI
+  ===================================================== */
+
   return (
-    <div className="min-h-screen bg-[#f1f5f9]">
+    <div className="min-h-screen bg-slate-50">
 
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-8 py-6">
-        <h1
-          className="text-3xl font-bold"
-          style={{
-            color: "#111827",
-          }}
-        >
-          Dashboard
-        </h1>
+      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
 
-        <p
-          className="mt-1 font-medium"
-          style={{
-            color: "#374151",
-          }}
-        >
-          Track and manage your job search journey.
-        </p>
-      </header>
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-      <main className="p-8">
+        <header className="mb-8">
 
-        {/* Interview Reminder */}
+          <p
+            className="text-sm font-semibold"
+            style={{
+              color: "#4f46e5",
+            }}
+          >
+            {today}
+          </p>
+
+          <h1
+            className="mt-2 text-3xl font-bold tracking-tight"
+            style={{
+              color: "#000000",
+            }}
+          >
+            Welcome back
+          </h1>
+
+          <p
+            className="mt-2 text-base"
+            style={{
+              color: "#334155",
+            }}
+          >
+            Here's an overview of your
+            job search and upcoming
+            career activity.
+          </p>
+
+        </header>
+
+        {/* =================================================
+            NEXT INTERVIEW
+        ================================================= */}
+
         {!loading &&
           nearestInterview &&
           nearestReminder && (
-            <div className="mb-8 bg-orange-50 border border-orange-200 rounded-xl p-5 shadow-sm">
 
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
 
-                <div className="flex items-start gap-4">
+              <div className="flex items-center gap-4">
 
-                  <div className="bg-orange-100 p-3 rounded-xl">
-                    <Bell
-                      size={24}
-                      className="text-orange-600"
-                    />
-                  </div>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100">
 
-                  <div>
-                    <p
-                      className="text-sm font-semibold"
-                      style={{
-                        color:
-                          "#c2410c",
-                      }}
-                    >
-                      Upcoming Interview
-                    </p>
+                  <Bell
+                    size={20}
+                    className="text-amber-700"
+                  />
 
-                    <h2
-                      className="text-xl font-bold mt-1"
-                      style={{
-                        color:
-                          "#111827",
-                      }}
-                    >
-                      {nearestReminder}
-                    </h2>
-
-                    <p
-                      className="mt-1"
-                      style={{
-                        color:
-                          "#374151",
-                      }}
-                    >
-                      {
-                        nearestInterview.title
-                      }{" "}
-                      at{" "}
-                      {
-                        nearestInterview.company
-                      }
-                    </p>
-
-                    <p
-                      className="text-sm mt-1"
-                      style={{
-                        color:
-                          "#6b7280",
-                      }}
-                    >
-                      {
-                        nearestInterview.interview_type ||
-                        "Interview"
-                      }
-                    </p>
-                  </div>
                 </div>
 
-                {nearestInterview.location &&
-                  nearestInterview.location.startsWith(
-                    "http"
-                  ) && (
-                    <a
-                      href={
-                        nearestInterview.location
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                      className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2 rounded-lg font-semibold text-center"
-                    >
-                      Open Meeting
-                    </a>
-                  )}
+                <div>
+
+                  <p
+                    className="text-sm font-semibold"
+                    style={{
+                      color: "#92400e",
+                    }}
+                  >
+                    Next interview ·{" "}
+                    {nearestReminder}
+                  </p>
+
+                  <p
+                    className="mt-1 font-bold"
+                    style={{
+                      color: "#000000",
+                    }}
+                  >
+                    {nearestInterview.title}{" "}
+                    at{" "}
+                    {nearestInterview.company}
+                  </p>
+
+                  <p
+                    className="text-sm"
+                    style={{
+                      color: "#475569",
+                    }}
+                  >
+                    {nearestInterview.interview_type ||
+                      "Interview"}
+                  </p>
+
+                </div>
+
               </div>
+
+              {isLink(
+                nearestInterview.location
+              ) && (
+
+                <a
+                  href={
+                    nearestInterview.location
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+                >
+                  Join meeting
+
+                  <ExternalLink
+                    size={14}
+                  />
+                </a>
+
+              )}
+
             </div>
+
           )}
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* =================================================
+            STAT CARDS
+            NO ICONS
+        ================================================= */}
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-            <div className="flex items-center justify-between">
+          <StatCard
+            label="Applications"
+            value={
+              statistics
+                ?.total_applications ??
+              0
+            }
+            loading={loading}
+          />
 
-              <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{
-                    color:
-                      "#374151",
-                  }}
-                >
-                  Total Applications
-                </p>
+          <StatCard
+            label="Interviews"
+            value={
+              statistics?.interviews ??
+              0
+            }
+            loading={loading}
+          />
 
-                <h2
-                  className="text-3xl font-bold mt-2"
-                  style={{
-                    color:
-                      "#111827",
-                  }}
-                >
-                  {loading
-                    ? "..."
-                    : statistics?.total_applications ??
-                      0}
-                </h2>
-              </div>
+          <StatCard
+            label="Offers"
+            value={
+              statistics?.offers ??
+              0
+            }
+            loading={loading}
+          />
 
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Briefcase
-                  className="text-blue-600"
-                  size={24}
-                />
-              </div>
-
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-
-            <div className="flex items-center justify-between">
-
-              <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{
-                    color:
-                      "#374151",
-                  }}
-                >
-                  Interviews
-                </p>
-
-                <h2
-                  className="text-3xl font-bold mt-2"
-                  style={{
-                    color:
-                      "#111827",
-                  }}
-                >
-                  {loading
-                    ? "..."
-                    : statistics?.interviews ??
-                      0}
-                </h2>
-              </div>
-
-              <div className="bg-yellow-100 p-3 rounded-lg">
-                <Clock
-                  className="text-yellow-600"
-                  size={24}
-                />
-              </div>
-
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-
-            <div className="flex items-center justify-between">
-
-              <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{
-                    color:
-                      "#374151",
-                  }}
-                >
-                  Offers
-                </p>
-
-                <h2
-                  className="text-3xl font-bold mt-2"
-                  style={{
-                    color:
-                      "#111827",
-                  }}
-                >
-                  {loading
-                    ? "..."
-                    : statistics?.offers ??
-                      0}
-                </h2>
-              </div>
-
-              <div className="bg-green-100 p-3 rounded-lg">
-                <CheckCircle
-                  className="text-green-600"
-                  size={24}
-                />
-              </div>
-
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-
-            <div className="flex items-center justify-between">
-
-              <div>
-                <p
-                  className="text-sm font-medium"
-                  style={{
-                    color:
-                      "#374151",
-                  }}
-                >
-                  Rejected
-                </p>
-
-                <h2
-                  className="text-3xl font-bold mt-2"
-                  style={{
-                    color:
-                      "#111827",
-                  }}
-                >
-                  {loading
-                    ? "..."
-                    : statistics?.rejected ??
-                      0}
-                </h2>
-              </div>
-
-              <div className="bg-red-100 p-3 rounded-lg">
-                <XCircle
-                  className="text-red-600"
-                  size={24}
-                />
-              </div>
-
-            </div>
-          </div>
+          <StatCard
+            label="Rejected"
+            value={
+              statistics?.rejected ??
+              0
+            }
+            loading={loading}
+          />
 
         </div>
 
-        {/* Upcoming Interviews */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mt-8">
+        {/* =================================================
+            MAIN CONTENT
+        ================================================= */}
 
-          <div className="flex items-center gap-3">
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <CalendarDays
-                size={24}
-                className="text-purple-600"
-              />
-            </div>
+          {/* =================================================
+              LEFT COLUMN
+          ================================================= */}
 
-            <div>
-              <h2
-                className="text-xl font-bold"
-                style={{
-                  color:
-                    "#111827",
-                }}
-              >
-                Upcoming Interviews
-              </h2>
+          <div className="space-y-6 lg:col-span-2">
 
-              <p
-                className="mt-1"
-                style={{
-                  color:
-                    "#374151",
-                }}
-              >
-                Your next scheduled interviews.
-              </p>
-            </div>
+            {/* ===============================================
+                UPCOMING INTERVIEWS
+            =============================================== */}
 
-          </div>
+            <Card
+              title="Upcoming interviews"
+              subtitle="Your next scheduled interviews."
+            >
 
-          <div className="mt-6">
+              {loading ? (
 
-            {loading ? (
-              <p
-                style={{
-                  color:
-                    "#6b7280",
-                }}
-              >
-                Loading interviews...
-              </p>
-            ) : upcomingInterviews.length >
-              0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="space-y-3">
 
-                {upcomingInterviews.map(
-                  (interview) => {
-                    const reminder =
-                      getInterviewReminder(
-                        interview.interview_date
-                      );
+                  {[0, 1, 2].map(
+                    (number) => (
 
-                    return (
                       <div
-                        key={
-                          interview.id
-                        }
-                        className="border border-gray-200 rounded-xl p-5"
-                      >
+                        key={number}
+                        className="h-20 animate-pulse rounded-xl bg-slate-100"
+                      />
 
-                        {reminder && (
-                          <div className="mb-4">
+                    )
+                  )}
+
+                </div>
+
+              ) : upcomingInterviews.length >
+                0 ? (
+
+                <ul className="divide-y divide-slate-100">
+
+                  {upcomingInterviews.map(
+                    (interview) => {
+
+                      const date =
+                        new Date(
+                          interview.interview_date
+                        );
+
+                      const reminder =
+                        getInterviewReminder(
+                          interview.interview_date
+                        );
+
+                      return (
+
+                        <li
+                          key={
+                            interview.id
+                          }
+                          className="flex gap-4 py-4 first:pt-0 last:pb-0"
+                        >
+
+                          {/* DATE */}
+
+                          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-indigo-50">
 
                             <span
-                              className="inline-block bg-orange-100 px-3 py-1 rounded-full text-xs font-semibold"
+                              className="text-lg font-bold leading-none"
                               style={{
                                 color:
-                                  "#c2410c",
+                                  "#000000",
                               }}
                             >
-                              {reminder}
+                              {date.toLocaleDateString(
+                                "en-ZA",
+                                {
+                                  day:
+                                    "2-digit",
+                                }
+                              )}
+                            </span>
+
+                            <span
+                              className="mt-1 text-xs font-semibold"
+                              style={{
+                                color:
+                                  "#4f46e5",
+                              }}
+                            >
+                              {date.toLocaleDateString(
+                                "en-ZA",
+                                {
+                                  month:
+                                    "short",
+                                }
+                              )}
                             </span>
 
                           </div>
-                        )}
 
-                        <h3
-                          className="font-bold text-lg"
-                          style={{
-                            color:
-                              "#111827",
-                          }}
-                        >
-                          {
-                            interview.title
-                          }
-                        </h3>
+                          <div className="min-w-0 flex-1">
 
-                        <p
-                          className="font-semibold mt-1"
-                          style={{
-                            color:
-                              "#2563eb",
-                          }}
-                        >
-                          {
-                            interview.company
-                          }
-                        </p>
+                            <div className="flex flex-wrap items-center gap-2">
 
-                        <div className="mt-4 space-y-3">
-
-                          <div className="flex items-start gap-2">
-
-                            <CalendarDays
-                              size={18}
-                              className="mt-0.5 text-gray-500"
-                            />
-
-                            <div>
-                              <p
-                                className="text-sm font-semibold"
+                              <h3
+                                className="truncate font-bold"
                                 style={{
                                   color:
-                                    "#111827",
+                                    "#000000",
                                 }}
                               >
-                                {formatInterviewDate(
-                                  interview.interview_date
-                                )}
-                              </p>
+                                {
+                                  interview.title
+                                }
+                              </h3>
 
-                              <p
-                                className="text-sm"
-                                style={{
-                                  color:
-                                    "#6b7280",
-                                }}
-                              >
-                                {formatInterviewTime(
+                              {reminder && (
+
+                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                  {
+                                    reminder
+                                  }
+                                </span>
+
+                              )}
+
+                            </div>
+
+                            <p
+                              className="text-sm font-semibold"
+                              style={{
+                                color:
+                                  "#4f46e5",
+                              }}
+                            >
+                              {
+                                interview.company
+                              }
+                            </p>
+
+                            <div
+                              className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm"
+                              style={{
+                                color:
+                                  "#475569",
+                              }}
+                            >
+
+                              <span className="inline-flex items-center gap-1.5">
+
+                                <Clock
+                                  size={14}
+                                />
+
+                                {formatTime(
                                   interview.interview_date
                                 )}
-                              </p>
+
+                              </span>
+
+                              <span className="inline-flex items-center gap-1.5">
+
+                                <Video
+                                  size={14}
+                                />
+
+                                {interview.interview_type ||
+                                  "Type not specified"}
+
+                              </span>
+
+                              <span className="inline-flex items-center gap-1.5">
+
+                                <MapPin
+                                  size={14}
+                                />
+
+                                {isLink(
+                                  interview.location
+                                ) ? (
+
+                                  <a
+                                    href={
+                                      interview.location
+                                    }
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-semibold text-indigo-600 hover:underline"
+                                  >
+                                    Meeting link
+                                  </a>
+
+                                ) : (
+
+                                  interview.location ||
+                                  "Location not specified"
+
+                                )}
+
+                              </span>
+
                             </div>
 
                           </div>
 
-                          <div className="flex items-start gap-2">
+                        </li>
 
-                            <Video
-                              size={18}
-                              className="mt-0.5 text-gray-500"
-                            />
+                      );
+                    }
+                  )}
 
-                            <p
-                              className="text-sm"
-                              style={{
-                                color:
-                                  "#374151",
-                              }}
-                            >
-                              {interview.interview_type ||
-                                "Not specified"}
-                            </p>
+                </ul>
 
-                          </div>
-
-                          <div className="flex items-start gap-2">
-
-                            <MapPin
-                              size={18}
-                              className="mt-0.5 text-gray-500"
-                            />
-
-                            {interview.location ? (
-                              interview.location.startsWith(
-                                "http"
-                              ) ? (
-                                <a
-                                  href={
-                                    interview.location
-                                  }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-sm underline break-all"
-                                  style={{
-                                    color:
-                                      "#2563eb",
-                                  }}
-                                >
-                                  Open Meeting Link
-                                </a>
-                              ) : (
-                                <p
-                                  className="text-sm"
-                                  style={{
-                                    color:
-                                      "#374151",
-                                  }}
-                                >
-                                  {
-                                    interview.location
-                                  }
-                                </p>
-                              )
-                            ) : (
-                              <p
-                                className="text-sm"
-                                style={{
-                                  color:
-                                    "#6b7280",
-                                }}
-                              >
-                                Location not specified
-                              </p>
-                            )}
-
-                          </div>
-
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-
-              </div>
-            ) : (
-              <div className="border border-dashed border-gray-300 rounded-lg p-6">
-
-                <p
-                  style={{
-                    color:
-                      "#6b7280",
-                  }}
-                >
-                  You have no upcoming interviews.
-                </p>
-
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-
-          {/* Chart */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-
-            <h2
-              className="text-xl font-bold"
-              style={{
-                color:
-                  "#111827",
-              }}
-            >
-              Application Status
-            </h2>
-
-            <p
-              className="mt-2"
-              style={{
-                color:
-                  "#374151",
-              }}
-            >
-              Breakdown of your job applications.
-            </p>
-
-            <div className="h-64 mt-4">
-
-              {chartData.length >
-              0 ? (
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                >
-                  <PieChart>
-
-                    <Pie
-                      data={
-                        chartData
-                      }
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={
-                        90
-                      }
-                      label
-                    >
-
-                      {chartData.map(
-                        (
-                          _,
-                          index
-                        ) => (
-                          <Cell
-                            key={
-                              index
-                            }
-                            fill={
-                              chartColors[
-                                index %
-                                  chartColors.length
-                              ]
-                            }
-                          />
-                        )
-                      )}
-
-                    </Pie>
-
-                    <Tooltip />
-
-                  </PieChart>
-                </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center">
 
-                  <p
-                    style={{
-                      color:
-                        "#6b7280",
-                    }}
-                  >
-                    No applications yet
-                  </p>
+                <EmptyState message="No upcoming interviews. They'll appear here once you schedule one." />
 
-                </div>
               )}
 
-            </div>
-          </div>
+            </Card>
 
-          {/* Recent Applications */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            {/* ===============================================
+                RECENT APPLICATIONS
+            =============================================== */}
 
-            <h2
-              className="text-xl font-bold"
-              style={{
-                color:
-                  "#111827",
-              }}
+            <Card
+              title="Recent applications"
+              subtitle="Your latest job applications."
             >
-              Recent Applications
-            </h2>
-
-            <p
-              className="mt-2"
-              style={{
-                color:
-                  "#374151",
-              }}
-            >
-              Your latest job applications.
-            </p>
-
-            <div className="mt-6 space-y-4">
 
               {applications.length >
               0 ? (
-                applications
-                  .slice(0, 5)
-                  .map(
-                    (
-                      application
-                    ) => (
-                      <div
-                        key={
-                          application.id
-                        }
-                        className="border border-gray-200 rounded-lg p-4"
-                      >
 
-                        <div className="flex justify-between items-start gap-4">
+                <ul className="divide-y divide-slate-100">
 
-                          <div>
+                  {applications
+                    .slice(0, 5)
+                    .map(
+                      (
+                        application
+                      ) => {
 
-                            <h3
-                              className="font-bold"
-                              style={{
-                                color:
-                                  "#111827",
-                              }}
-                            >
-                              {
-                                application.title
-                              }
-                            </h3>
+                        const style =
+                          getStatusStyle(
+                            application.status
+                          );
 
-                            <p
-                              className="text-sm mt-1"
-                              style={{
-                                color:
-                                  "#374151",
-                              }}
-                            >
-                              {
-                                application.company
-                              }
-                            </p>
+                        return (
 
-                            <p
-                              className="text-sm mt-1"
-                              style={{
-                                color:
-                                  "#6b7280",
-                              }}
-                            >
-                              {
-                                application.location
-                              }
-                            </p>
-
-                          </div>
-
-                          <span className="bg-blue-100 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
-                            {
-                              application.status
+                          <li
+                            key={
+                              application.id
                             }
-                          </span>
+                            className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                          >
 
-                        </div>
+                            <div className="min-w-0">
 
-                        <p
-                          className="text-sm mt-3"
-                          style={{
-                            color:
-                              "#6b7280",
-                          }}
-                        >
-                          Applied:{" "}
-                          {new Date(
-                            application.applied_date
-                          ).toLocaleDateString(
-                            "en-ZA"
-                          )}
-                        </p>
+                              <h3
+                                className="truncate font-bold"
+                                style={{
+                                  color:
+                                    "#000000",
+                                }}
+                              >
+                                {
+                                  application.title
+                                }
+                              </h3>
 
-                      </div>
-                    )
-                  )
+                              <p
+                                className="truncate text-sm"
+                                style={{
+                                  color:
+                                    "#475569",
+                                }}
+                              >
+                                {
+                                  application.company
+                                }
+
+                                {application.location &&
+                                  ` · ${application.location}`}
+
+                              </p>
+
+                            </div>
+
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${style.badge}`}
+                              >
+                                {
+                                  application.status
+                                }
+                              </span>
+
+                              <span
+                                className="text-xs"
+                                style={{
+                                  color:
+                                    "#64748b",
+                                }}
+                              >
+                                {new Date(
+                                  application.applied_date
+                                ).toLocaleDateString(
+                                  "en-ZA",
+                                  {
+                                    day:
+                                      "numeric",
+                                    month:
+                                      "short",
+                                    year:
+                                      "numeric",
+                                  }
+                                )}
+                              </span>
+
+                            </div>
+
+                          </li>
+
+                        );
+                      }
+                    )}
+
+                </ul>
+
               ) : (
-                <p
-                  style={{
-                    color:
-                      "#6b7280",
-                  }}
-                >
-                  No recent applications.
-                </p>
+
+                <EmptyState message="No applications yet. Add your first application to start tracking your progress." />
+
               )}
 
-            </div>
+            </Card>
+
           </div>
+
+          {/* =================================================
+              APPLICATION STATUS
+          ================================================= */}
+
+          <Card
+            title="Application status"
+            subtitle="Breakdown of your applications."
+            className="h-fit lg:sticky lg:top-24"
+          >
+
+            {chartData.length >
+            0 ? (
+
+              <>
+
+                <div className="relative h-56">
+
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                  >
+
+                    <PieChart>
+
+                      <Pie
+                        data={
+                          chartData
+                        }
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        stroke="none"
+                      >
+
+                        {chartData.map(
+                          (item) => (
+
+                            <Cell
+                              key={
+                                item.name
+                              }
+                              fill={
+                                getStatusStyle(
+                                  item.name
+                                ).dot
+                              }
+                            />
+
+                          )
+                        )}
+
+                      </Pie>
+
+                      <Tooltip />
+
+                    </PieChart>
+
+                  </ResponsiveContainer>
+
+                  {/* TOTAL */}
+
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+
+                    <span
+                      className="text-3xl font-bold tabular-nums"
+                      style={{
+                        color:
+                          "#000000",
+                      }}
+                    >
+                      {
+                        totalInChart
+                      }
+                    </span>
+
+                    <span
+                      className="text-xs font-medium"
+                      style={{
+                        color:
+                          "#475569",
+                      }}
+                    >
+                      total
+                    </span>
+
+                  </div>
+
+                </div>
+
+                <ul className="mt-5 space-y-3">
+
+                  {chartData.map(
+                    (item) => (
+
+                      <li
+                        key={
+                          item.name
+                        }
+                        className="flex items-center justify-between text-sm"
+                      >
+
+                        <span
+                          className="inline-flex items-center gap-2 font-medium"
+                          style={{
+                            color:
+                              "#334155",
+                          }}
+                        >
+
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{
+                              backgroundColor:
+                                getStatusStyle(
+                                  item.name
+                                ).dot,
+                            }}
+                          />
+
+                          {
+                            item.name
+                          }
+
+                        </span>
+
+                        <span
+                          className="font-bold tabular-nums"
+                          style={{
+                            color:
+                              "#000000",
+                          }}
+                        >
+                          {
+                            item.value
+                          }
+                        </span>
+
+                      </li>
+
+                    )
+                  )}
+
+                </ul>
+
+              </>
+
+            ) : (
+
+              <EmptyState message="No applications yet." />
+
+            )}
+
+          </Card>
 
         </div>
 
-      </main>
+      </div>
+
     </div>
   );
 };

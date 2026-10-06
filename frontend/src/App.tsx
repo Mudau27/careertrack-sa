@@ -6,6 +6,10 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import SavedJobs from "./pages/SavedJobs";
@@ -16,74 +20,115 @@ import CVAnalyzer from "./pages/CVAnalyzer";
 import AdminDashboard from "./pages/AdminDashboard";
 
 import AppLayout from "./components/AppLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
+
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Login */}
+        {/* =====================================
+            PUBLIC AUTHENTICATION ROUTES
+        ====================================== */}
 
         <Route
           path="/login"
           element={<Login />}
         />
 
+        <Route
+          path="/register"
+          element={<Register />}
+        />
 
-        {/* Main Application */}
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
 
-        <Route element={<AppLayout />}>
-
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
-
-          <Route
-            path="/jobs"
-            element={<Jobs />}
-          />
-
-          <Route
-            path="/saved-jobs"
-            element={<SavedJobs />}
-          />
-
-          <Route
-            path="/applications"
-            element={<Applications />}
-          />
-
-          <Route
-            path="/cv-analyzer"
-            element={<CVAnalyzer />}
-          />
-
-          <Route
-            path="/interviews"
-            element={<Interviews />}
-          />
-
-          <Route
-            path="/profile"
-            element={<Profile />}
-          />
+        <Route
+          path="/reset-password/:token"
+          element={<ResetPassword />}
+        />
 
 
-          {/* Admin Only */}
+        {/* =====================================
+            PROTECTED APPLICATION
+        ====================================== */}
 
-          <Route element={<AdminRoute />}>
+        <Route element={<ProtectedRoute />}>
+
+          <Route element={<AppLayout />}>
+
             <Route
-              path="/admin"
-              element={<AdminDashboard />}
+              path="/dashboard"
+              element={<Dashboard />}
             />
+
+            <Route
+              path="/jobs"
+              element={<Jobs />}
+            />
+
+            <Route
+              path="/saved-jobs"
+              element={<SavedJobs />}
+            />
+
+            <Route
+              path="/applications"
+              element={<Applications />}
+            />
+
+            <Route
+              path="/cv-analyzer"
+              element={<CVAnalyzer />}
+            />
+
+            <Route
+              path="/interviews"
+              element={<Interviews />}
+            />
+
+            <Route
+              path="/profile"
+              element={<Profile />}
+            />
+
+
+            {/* =============================
+                ADMIN ONLY
+            ============================== */}
+
+            <Route element={<AdminRoute />}>
+
+              <Route
+                path="/admin"
+                element={<AdminDashboard />}
+              />
+
+            </Route>
+
           </Route>
 
         </Route>
 
 
-        {/* Unknown URLs */}
+        {/* =====================================
+            DEFAULT / UNKNOWN ROUTES
+        ====================================== */}
+
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
+        />
 
         <Route
           path="*"
