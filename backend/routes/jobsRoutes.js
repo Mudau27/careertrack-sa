@@ -4,7 +4,7 @@ const {
     getJobs,
     getJobById,
     createJob
-} = require("../controllers/jobsController");
+} = require("../controllers/JobsController");
 
 const protect = require("../middleware/authMiddleware");
 
