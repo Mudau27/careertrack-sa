@@ -22,11 +22,12 @@ const app = express();
 
 
 // ==========================================
-// MIDDLEWARE
+// CORS
 // ==========================================
 
 const allowedOrigins = [
     "http://localhost:5173",
+    "https://careertrack-sa.vercel.app",
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -34,20 +35,25 @@ app.use(
     cors({
         origin: (origin, callback) => {
 
-            // Allow tools such as Swagger/Postman
-            // that may not send an Origin header.
+            // Allow requests without an Origin header,
+            // such as Swagger, Postman, curl, etc.
             if (!origin) {
                 return callback(null, true);
             }
 
+            // Allow approved frontend origins.
             if (allowedOrigins.includes(origin)) {
                 return callback(null, true);
             }
 
+            // Helpful for debugging production CORS issues.
+            console.log(
+                "Blocked by CORS:",
+                origin
+            );
+
             return callback(
-                new Error(
-                    "Not allowed by CORS"
-                )
+                new Error("Not allowed by CORS")
             );
         },
 
@@ -66,6 +72,11 @@ app.use(
         ]
     })
 );
+
+
+// ==========================================
+// GENERAL MIDDLEWARE
+// ==========================================
 
 app.use(express.json());
 
