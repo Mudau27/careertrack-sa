@@ -27,7 +27,7 @@ The goal of CareerTrack SA is to provide job seekers with a central place to man
 - Forgot-password and password-reset functionality.
 - Role-based access control for administrative features.
 
-### 👤 User Profile Management
+###  User Profile Management
 - Manage professional profile information.
 - Maintain career-related information in one place.
 - Upload a CV for career analysis.
