@@ -500,4 +500,4 @@ No open-source license is specified here. If you want other developers to reuse,
 
 ---
 
-⭐ If you find CareerTrack SA interesting, explore the live demo and source code to see how the frontend, backend, database, and external integrations work together.
+ If you find CareerTrack SA interesting, explore the live demo and source code to see how the frontend, backend, database, and external integrations work together.
