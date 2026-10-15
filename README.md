@@ -328,7 +328,7 @@ You should now be able to access the frontend and connect it to your local backe
 
 ---
 
-## 🔌 API Overview
+##  API Overview
 
 The backend exposes REST API endpoints for authentication, profiles, jobs, applications, dashboards, interviews, notifications, and administration.
 
@@ -362,7 +362,7 @@ For the complete request and response schemas, parameters, and available operati
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 The backend uses Jest and Supertest for automated testing.
 
